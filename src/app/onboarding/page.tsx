@@ -86,7 +86,7 @@ export default function OnboardingPage() {
       setIsSearchingCity(true);
       try {
         const res = await fetch(
-          `/api/locations?q=${encodeURIComponent(q)}`
+          `/api/location?q=${encodeURIComponent(q)}`
         );
         if (res.ok) {
           const data = (await res.json()) as { results?: LocationOption[] };

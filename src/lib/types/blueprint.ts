@@ -136,6 +136,8 @@ export interface ReflectionNote {
 
 export interface BlueprintSession {
   sessionId: string;
+  sessionToken?: string;
+  moonBoundaryFlag?: boolean;
   input: OnboardingInput;
   freePayload: BlueprintFreePayload;
   paidPayload: BlueprintPaidPayload;

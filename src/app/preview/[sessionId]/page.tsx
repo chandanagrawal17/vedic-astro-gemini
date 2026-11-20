@@ -16,8 +16,14 @@ import { LifeChaptersArc } from "@/components/blueprint/LifeChaptersArc";
 import { AlignmentMeter } from "@/components/blueprint/AlignmentMeter";
 import { LockedInsightCard } from "@/components/blueprint/LockedInsightCard";
 import { SoftAuthModal } from "@/components/blueprint/SoftAuthModal";
-import { BlueprintSession, HardResetFeedback } from "@/lib/types/blueprint";
-import { loadSession, updateSessionFeedback } from "@/lib/store/sessionStore";
+import { BlueprintFreePayload, BlueprintSession, HardResetFeedback, OnboardingInput } from "@/lib/types/blueprint";
+import {
+  hasStoredSession,
+  loadSession,
+  saveCalculatedSession,
+  updateSessionFeedback,
+} from "@/lib/store/sessionStore";
+import { DEFAULT_ONBOARDING_INPUT } from "@/lib/mock/blueprintMock";
 
 export default function PreviewSessionPage() {
   const params = useParams<{ sessionId: string }>();
@@ -31,7 +37,52 @@ export default function PreviewSessionPage() {
   const activeStep: 1 | 2 = stepParam === "2" ? 2 : 1;
 
   useEffect(() => {
-    setSession(loadSession(params?.sessionId));
+    const sid = params?.sessionId;
+    if (!sid || sid === "demo-session" || hasStoredSession(sid)) {
+      setSession(loadSession(sid));
+      return;
+    }
+
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch(`/api/charts/${encodeURIComponent(sid)}`);
+        if (res.ok) {
+          const data = (await res.json()) as {
+            sessionId: string;
+            moonBoundaryFlag?: boolean;
+            freePayload?: BlueprintFreePayload | null;
+            hardResetFeedback?: HardResetFeedback | null;
+            input?: Partial<OnboardingInput>;
+          };
+          if (!cancelled && data.freePayload) {
+            const hydratedInput: OnboardingInput = {
+              ...DEFAULT_ONBOARDING_INPUT,
+              ...data.input,
+              firstName: data.input?.firstName || "Your",
+            };
+            const saved = saveCalculatedSession(hydratedInput, {
+              sessionId: data.sessionId,
+              sessionToken: data.sessionId,
+              freePayload: data.freePayload,
+              moonBoundaryFlag: data.moonBoundaryFlag,
+              hardResetFeedback: data.hardResetFeedback,
+            });
+            setSession(saved);
+            return;
+          }
+        }
+      } catch {
+        // Fallback to local session if offline
+      }
+      if (!cancelled) {
+        setSession(loadSession(sid));
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
   }, [params?.sessionId]);
 
   if (!session) {
@@ -51,6 +102,15 @@ export default function PreviewSessionPage() {
   const handleFeedback = (val: HardResetFeedback) => {
     const updated = updateSessionFeedback(val);
     setSession(updated);
+    if (session.sessionId && session.sessionId !== "demo-session") {
+      fetch(`/api/charts/${encodeURIComponent(session.sessionId)}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ feedback: val }),
+      }).catch(() => {
+        // Non-blocking background persistence
+      });
+    }
   };
 
   const goToStep = (step: 1 | 2) => {
@@ -238,6 +298,9 @@ export default function PreviewSessionPage() {
       <SoftAuthModal
         isOpen={authModalOpen}
         firstName={input.firstName}
+        sessionId={session.sessionId}
+        sessionToken={session.sessionToken ?? session.sessionId}
+        onboardingInput={input}
         onClose={() => setAuthModalOpen(false)}
         onContinue={handleAuthContinue}
       />
