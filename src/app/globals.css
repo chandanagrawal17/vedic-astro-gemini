@@ -1,0 +1,59 @@
+@import "tailwindcss";
+
+:root {
+  /* Atmospheric Canvases */
+  --bg-obsidian: #0D0907;
+  --bg-obsidian-elevated: #16100C;
+  --surface-glass: rgba(28, 19, 14, 0.72);
+  --surface-glass-strong: rgba(38, 25, 18, 0.88);
+
+  /* Solar Orange & Ember Accents */
+  --solar-tangerine: #FF6B2B;
+  --solar-ember: #C8420E;
+  --solar-amber: #F5A65B;
+  --solar-soft: rgba(255, 107, 43, 0.14);
+
+  /* Borders & Hairlines */
+  --border-hairline: rgba(245, 166, 91, 0.18);
+  --border-active: rgba(255, 107, 43, 0.55);
+
+  /* Typography */
+  --text-ivory: #FDF6EE;
+  --text-stone: #B8A99E;
+  --text-muted: #7C6E65;
+
+  /* Semantic Indicators */
+  --status-aligned: #4ADE80;
+  --status-caution: #F59E0B;
+  --status-alert: #F87171;
+}
+
+@theme inline {
+  --font-serif: var(--font-serif), Georgia, serif;
+  --font-sans: var(--font-sans), -apple-system, BlinkMacSystemFont, sans-serif;
+}
+
+html,
+body {
+  background-color: var(--bg-obsidian);
+  color: var(--text-ivory);
+  font-family: var(--font-sans), -apple-system, BlinkMacSystemFont, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  overflow-x: hidden;
+}
+
+/* Custom subtle scrollbar for horizontal tabs on mobile */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+/* Date input dark theme support */
+input[type="date"],
+input[type="time"] {
+  color-scheme: dark;
+}
