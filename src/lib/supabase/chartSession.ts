@@ -1,4 +1,6 @@
 import { randomUUID } from "crypto";
+import type { SupabaseClient } from "@supabase/supabase-js";
+import type { AstroProvider } from "@/lib/astro/provider";
 import {
   AstroPrecisionMode,
   NormalizedChartJson,
@@ -11,14 +13,12 @@ import {
   normalizeDobFormats,
   resolveEffectiveTob,
 } from "@/lib/astro/vedicAstroProvider";
-import { buildSlice2BlueprintPayloads } from "@/lib/blueprint/buildSlice2Blueprint";
 import { getSupabaseAdminClient } from "@/lib/supabase/admin";
 import {
   BirthWindow,
   BlueprintFreePayload,
   CareerMode,
   HardResetFeedback,
-  OnboardingInput,
   PrecisionMode as UiPrecisionMode,
   RelationshipStatus,
 } from "@/lib/types/blueprint";
@@ -49,7 +49,8 @@ export interface CalculateChartOutput {
   precisionMode: AstroPrecisionMode;
   moonBoundaryFlag: boolean;
   normalizedChart: NormalizedChartJson;
-  freePayload: BlueprintFreePayload;
+  freePayload: BlueprintFreePayload | null;
+  hasBlueprint: boolean;
   hardResetFeedback: HardResetFeedback | null;
 }
 
@@ -76,7 +77,8 @@ interface BlueprintRow {
   user_id: string | null;
   session_token: string;
   hook_proof_json: BlueprintFreePayload;
-  hard_reset_feedback: HardResetFeedback | null;
+  accuracy_feedback: HardResetFeedback | null;
+  model_version: string | null;
   is_paid: boolean;
 }
 
@@ -85,40 +87,27 @@ function assertMigrationError(error: { code?: string; message?: string } | null)
   if (
     error.code === "42P01" ||
     error.code === "PGRST205" ||
+    error.code === "42703" ||
+    error.code === "PGRST204" ||
     error.message?.includes("does not exist")
   ) {
     throw new Error(
-      "Supabase tables not found. Please run supabase/migrations/001_slice2_core.sql in your Supabase SQL Editor."
+      "Supabase schema out of date. Please run supabase/migrations/001_slice2_core.sql and 002_slice3_blueprints.sql in your Supabase SQL Editor."
     );
   }
   throw new Error(error.message || "Supabase database error");
 }
 
-function toOnboardingInput(
-  params: CalculateChartParams,
-  dobIso: string,
-  precisionMode: AstroPrecisionMode
-): OnboardingInput {
-  return {
-    firstName: params.firstName,
-    birthDate: dobIso,
-    birthCity: params.birthCity,
-    birthLat: params.birthLat,
-    birthLon: params.birthLon,
-    birthTz: params.birthTz,
-    precisionMode: toUiPrecisionMode(precisionMode),
-    birthTime: params.birthTime,
-    birthWindow: params.birthWindow,
-    relationshipStatus: params.relationshipStatus,
-    careerMode: params.careerMode,
-    careerField: params.careerField,
-  };
+export interface CalculateChartDeps {
+  admin?: Pick<SupabaseClient, "from">;
+  astroProvider?: AstroProvider;
 }
 
 export async function calculateAndPersistChart(
-  params: CalculateChartParams
+  params: CalculateChartParams,
+  deps?: CalculateChartDeps
 ): Promise<CalculateChartOutput> {
-  const admin = getSupabaseAdminClient();
+  const admin = deps?.admin ?? getSupabaseAdminClient();
   const astroPrecision = toAstroPrecisionMode(params.precisionMode);
   const { dobIso } = normalizeDobFormats(params.birthDate);
   const storedTob =
@@ -147,22 +136,27 @@ export async function calculateAndPersistChart(
       Math.abs(tokenRow.lon - params.birthLon) < 0.001 &&
       tokenRow.tz === params.birthTz
     ) {
+      // Keep profile context fresh on natal_charts if user edited relationship/career context
+      await admin
+        .from("natal_charts")
+        .update({
+          first_name: params.firstName,
+          relationship_status: params.relationshipStatus,
+          career_mode: params.careerMode,
+          career_field: params.careerField,
+        })
+        .eq("id", tokenRow.id);
+
       const { data: bpRow, error: bpErr } = await admin
         .from("blueprints")
-        .select("id, chart_id, user_id, session_token, hook_proof_json, hard_reset_feedback, is_paid")
-        .eq("session_token", requestedToken)
+        .select(
+          "id, chart_id, user_id, session_token, hook_proof_json, accuracy_feedback, model_version, is_paid"
+        )
+        .eq("chart_id", tokenRow.id)
+        .not("model_version", "is", null)
         .maybeSingle<BlueprintRow>();
 
       if (bpErr) assertMigrationError(bpErr);
-
-      const onboardingInput = toOnboardingInput(params, dobIso, astroPrecision);
-      const freePayload =
-        bpRow?.hook_proof_json ??
-        buildSlice2BlueprintPayloads(
-          onboardingInput,
-          tokenRow.normalized_chart_json,
-          requestedToken
-        ).freePayload;
 
       return {
         cached: true,
@@ -173,9 +167,16 @@ export async function calculateAndPersistChart(
         precisionMode: tokenRow.precision_mode,
         moonBoundaryFlag: tokenRow.moon_boundary_flag,
         normalizedChart: tokenRow.normalized_chart_json,
-        freePayload,
-        hardResetFeedback: bpRow?.hard_reset_feedback ?? null,
+        freePayload: bpRow?.hook_proof_json ?? null,
+        hasBlueprint: Boolean(bpRow),
+        hardResetFeedback: bpRow?.accuracy_feedback ?? null,
       };
+    }
+
+    // If requestedToken exists with DIFFERENT birth inputs (e.g., exact birth time added),
+    // invalidate any stale blueprint so synthesis re-runs cleanly.
+    if (tokenRow) {
+      await admin.from("blueprints").delete().eq("chart_id", tokenRow.id);
     }
   }
 
@@ -210,20 +211,14 @@ export async function calculateAndPersistChart(
     // Return the existing cached row directly
     const { data: bpRow, error: bpErr } = await admin
       .from("blueprints")
-      .select("id, chart_id, user_id, session_token, hook_proof_json, hard_reset_feedback, is_paid")
+      .select(
+        "id, chart_id, user_id, session_token, hook_proof_json, accuracy_feedback, model_version, is_paid"
+      )
       .eq("chart_id", reusableRow.id)
+      .not("model_version", "is", null)
       .maybeSingle<BlueprintRow>();
 
     if (bpErr) assertMigrationError(bpErr);
-
-    const onboardingInput = toOnboardingInput(params, dobIso, astroPrecision);
-    const freePayload =
-      bpRow?.hook_proof_json ??
-      buildSlice2BlueprintPayloads(
-        onboardingInput,
-        reusableRow.normalized_chart_json,
-        reusableRow.session_token
-      ).freePayload;
 
     return {
       cached: true,
@@ -234,13 +229,13 @@ export async function calculateAndPersistChart(
       precisionMode: reusableRow.precision_mode,
       moonBoundaryFlag: reusableRow.moon_boundary_flag,
       normalizedChart: reusableRow.normalized_chart_json,
-      freePayload,
-      hardResetFeedback: bpRow?.hard_reset_feedback ?? null,
+      freePayload: bpRow?.hook_proof_json ?? null,
+      hasBlueprint: Boolean(bpRow),
+      hardResetFeedback: bpRow?.accuracy_feedback ?? null,
     };
   }
 
   const sessionToken = requestedToken || `pb_${randomUUID()}`;
-  const onboardingInput = toOnboardingInput(params, dobIso, astroPrecision);
 
   let rawAstroJson: RawAstroBundle;
   let normalizedChartJson: NormalizedChartJson;
@@ -257,7 +252,7 @@ export async function calculateAndPersistChart(
     apiCallsMade = 0;
   } else {
     // 3. Cache miss -> Call VedicAstroAPI
-    const provider = getAstroProvider();
+    const provider = deps?.astroProvider ?? getAstroProvider();
     const bundle = await provider.fetchChartBundle({
       firstName: params.firstName,
       dob: dobIso,
@@ -276,13 +271,7 @@ export async function calculateAndPersistChart(
     apiCallsMade = bundle.apiCallsMade;
   }
 
-  const { freePayload, paidPayload } = buildSlice2BlueprintPayloads(
-    onboardingInput,
-    normalizedChartJson,
-    sessionToken
-  );
-
-  // 4. Persist natal_charts + blueprints in Supabase
+  // 4. Persist natal_charts in Supabase (blueprints row is created by Slice 3 LLM synthesis)
   const { data: savedChart, error: upsertChartErr } = await admin
     .from("natal_charts")
     .upsert(
@@ -298,6 +287,10 @@ export async function calculateAndPersistChart(
         lon: params.birthLon,
         tz: params.birthTz,
         moon_boundary_flag: moonBoundaryFlag,
+        first_name: params.firstName,
+        relationship_status: params.relationshipStatus,
+        career_mode: params.careerMode,
+        career_field: params.careerField,
         raw_astro_json: rawAstroJson,
         normalized_chart_json: normalizedChartJson,
       },
@@ -307,20 +300,6 @@ export async function calculateAndPersistChart(
     .single<{ id: string }>();
 
   if (upsertChartErr) assertMigrationError(upsertChartErr);
-
-  const { error: upsertBpErr } = await admin.from("blueprints").upsert(
-    {
-      chart_id: savedChart!.id,
-      user_id: params.userId ?? null,
-      session_token: sessionToken,
-      hook_proof_json: freePayload,
-      full_blueprint_json: paidPayload,
-      is_paid: false,
-    },
-    { onConflict: "session_token" }
-  );
-
-  if (upsertBpErr) assertMigrationError(upsertBpErr);
 
   if (params.userId) {
     await admin.from("profiles").upsert(
@@ -344,7 +323,8 @@ export async function calculateAndPersistChart(
     precisionMode: astroPrecision,
     moonBoundaryFlag,
     normalizedChart: normalizedChartJson,
-    freePayload,
+    freePayload: null,
+    hasBlueprint: false,
     hardResetFeedback: null,
   };
 }

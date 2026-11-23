@@ -11,8 +11,8 @@ interface AccuracyCheckProps {
 
 const OPTIONS: { value: HardResetFeedback; label: string }[] = [
   { value: "scarily_accurate", label: "Scarily Accurate" },
-  { value: "partially_true", label: "Partially True" },
-  { value: "not_quite", label: "Not Quite" },
+  { value: "close", label: "Close" },
+  { value: "off", label: "Off" },
 ];
 
 export function AccuracyCheck({

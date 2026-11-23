@@ -6,20 +6,41 @@ import { motion, AnimatePresence } from "framer-motion";
 import { RotateCcw } from "lucide-react";
 import { SolarShell } from "@/components/ui/SolarShell";
 import { SolarOrbHero } from "@/components/ui/SolarOrbHero";
-import { loadSession, saveCalculatedSession } from "@/lib/store/sessionStore";
-import { BlueprintFreePayload } from "@/lib/types/blueprint";
+import {
+  loadSession,
+  saveSynthesizedSession,
+} from "@/lib/store/sessionStore";
+import {
+  BlueprintFreePayload,
+  BlueprintPaidPayload,
+  HardResetFeedback,
+} from "@/lib/types/blueprint";
 
 const STATUS_LINES = [
-  "Mapping your last 10 years...",
-  "Scanning core friction loops...",
-  "Building your Personal Blueprint...",
+  "Mapping personal rhythms...",
+  "Tracing your last 10 years...",
+  "Synthesizing your blueprint...",
 ];
 
 interface CalculateApiResponse {
+  chartId: string;
   sessionId: string;
   sessionToken: string;
   moonBoundaryFlag: boolean;
-  freePayload: BlueprintFreePayload;
+  error?: string;
+}
+
+interface SynthesizeApiResponse {
+  chartId: string;
+  sessionId: string;
+  sessionToken: string;
+  moonBoundaryFlag: boolean;
+  modelVersion: string | null;
+  isUnlocked: boolean;
+  unlockTier: "one_time_19" | "annual_39" | null;
+  accuracyFeedback: HardResetFeedback | null;
+  hook_proof_json: BlueprintFreePayload;
+  full_blueprint_json: BlueprintPaidPayload | null;
   error?: string;
   isTimeout?: boolean;
 }
@@ -37,14 +58,15 @@ export default function SynthesizingPage() {
 
     const session = loadSession();
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 25000);
+    const timeoutId = setTimeout(() => controller.abort(), 45000);
 
     const minAnimationPromise = new Promise<void>((resolve) => {
-      setTimeout(resolve, 3050);
+      setTimeout(resolve, 2800);
     });
 
-    const apiPromise = (async () => {
-      const res = await fetch("/api/charts/calculate", {
+    const pipelinePromise = (async () => {
+      // Step 1: Calculate & cache natal chart math
+      const calcRes = await fetch("/api/charts/calculate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         signal: controller.signal,
@@ -54,40 +76,86 @@ export default function SynthesizingPage() {
         }),
       });
 
-      const data = (await res.json()) as CalculateApiResponse;
-      if (!res.ok) {
+      const calcData = (await calcRes.json()) as CalculateApiResponse;
+      if (!calcRes.ok) {
         throw new Error(
-          data.error ||
-            (res.status === 504
+          calcData.error ||
+            (calcRes.status === 504
               ? "Pattern engine timed out. Please retry."
               : "Unable to calculate your chart right now.")
         );
       }
-      return data;
+
+      if (mountedRef.current) {
+        setLineIndex((prev) => (prev < 1 ? 1 : prev));
+      }
+
+      // Step 2: Synthesize 5-Hook Blueprint via Gemini + Guardrail
+      const synthTimer = setTimeout(() => {
+        if (mountedRef.current) {
+          setLineIndex(2);
+        }
+      }, 900);
+
+      try {
+        const synthRes = await fetch("/api/blueprint/synthesize", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          signal: controller.signal,
+          body: JSON.stringify({
+            chartId: calcData.chartId,
+            sessionToken: calcData.sessionToken,
+            firstName: session.input.firstName,
+            relationshipStatus: session.input.relationshipStatus,
+            careerMode: session.input.careerMode,
+            careerField: session.input.careerField,
+          }),
+        });
+
+        const synthData = (await synthRes.json()) as SynthesizeApiResponse;
+        if (!synthRes.ok) {
+          throw new Error(
+            synthData.error ||
+              (synthRes.status === 504
+                ? "Blueprint synthesis timed out. Please try again."
+                : "Unable to synthesize your Blueprint right now.")
+          );
+        }
+
+        return synthData;
+      } finally {
+        clearTimeout(synthTimer);
+      }
     })();
 
     try {
-      const [, calcResult] = await Promise.all([
+      const [, synthResult] = await Promise.all([
         minAnimationPromise,
-        apiPromise,
+        pipelinePromise,
       ]);
 
       if (!mountedRef.current) return;
 
-      saveCalculatedSession(session.input, {
-        sessionId: calcResult.sessionId,
-        sessionToken: calcResult.sessionToken,
-        freePayload: calcResult.freePayload,
-        moonBoundaryFlag: calcResult.moonBoundaryFlag,
+      saveSynthesizedSession(session.input, {
+        chartId: synthResult.chartId,
+        sessionId: synthResult.sessionId,
+        sessionToken: synthResult.sessionToken,
+        freePayload: synthResult.hook_proof_json,
+        paidPayload: synthResult.full_blueprint_json,
+        isUnlocked: synthResult.isUnlocked,
+        unlockTier: synthResult.unlockTier,
+        moonBoundaryFlag: synthResult.moonBoundaryFlag,
+        hardResetFeedback: synthResult.accuracyFeedback,
+        modelVersion: synthResult.modelVersion,
       });
 
-      router.replace(`/preview/${calcResult.sessionId}`);
+      router.replace(`/preview/${synthResult.sessionId}`);
     } catch (err) {
       if (!mountedRef.current) return;
       const isAbort = err instanceof Error && err.name === "AbortError";
       setErrorMsg(
         isAbort
-          ? "The pattern engine took too long to respond. Please try again."
+          ? "The synthesis engine took a little too long to respond. Please try again."
           : err instanceof Error
             ? err.message
             : "Something went wrong while calibrating your chart."
@@ -99,8 +167,8 @@ export default function SynthesizingPage() {
 
   useEffect(() => {
     mountedRef.current = true;
-    const t1 = setTimeout(() => setLineIndex(1), 1000);
-    const t2 = setTimeout(() => setLineIndex(2), 2050);
+    const t1 = setTimeout(() => setLineIndex((p) => (p < 1 ? 1 : p)), 1000);
+    const t2 = setTimeout(() => setLineIndex(2), 2100);
 
     void runSynthesis();
 

@@ -5,8 +5,19 @@ import { useParams, useRouter } from "next/navigation";
 import { ArrowLeft, Check, Lock, ShieldCheck, Sparkles } from "lucide-react";
 import { SolarShell } from "@/components/ui/SolarShell";
 import { ObsidianCard } from "@/components/ui/ObsidianCard";
-import { BlueprintSession } from "@/lib/types/blueprint";
-import { loadSession, unlockSession } from "@/lib/store/sessionStore";
+import {
+  BlueprintFreePayload,
+  BlueprintPaidPayload,
+  BlueprintSession,
+  HardResetFeedback,
+  OnboardingInput,
+} from "@/lib/types/blueprint";
+import {
+  loadSession,
+  loadStoredSession,
+  saveSynthesizedSession,
+} from "@/lib/store/sessionStore";
+import { DEFAULT_ONBOARDING_INPUT } from "@/lib/mock/blueprintMock";
 
 const REPORT_CHECKLIST = [
   "Hard Reset Deep Breakdown & Next Pressure Window",
@@ -26,15 +37,77 @@ export default function UnlockPaywallPage() {
   const [processing, setProcessing] = useState(false);
 
   useEffect(() => {
-    setSession(loadSession(params?.sessionId));
+    const sid = params?.sessionId;
+    if (!sid || sid === "demo-session") {
+      setSession(loadSession("demo-session"));
+      return;
+    }
+
+    const stored = loadStoredSession(sid);
+    if (stored) {
+      setSession(stored);
+      return;
+    }
+
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch(`/api/blueprint/${encodeURIComponent(sid)}`);
+        if (res.ok && !cancelled) {
+          const data = (await res.json()) as {
+            chartId: string;
+            sessionId: string;
+            sessionToken: string;
+            moonBoundaryFlag?: boolean;
+            modelVersion?: string | null;
+            isUnlocked?: boolean;
+            unlockTier?: "one_time_19" | "annual_39" | null;
+            accuracyFeedback?: HardResetFeedback | null;
+            hook_proof_json: BlueprintFreePayload;
+            full_blueprint_json: BlueprintPaidPayload | null;
+            input?: OnboardingInput;
+          };
+          const hydrated = saveSynthesizedSession(
+            data.input ?? DEFAULT_ONBOARDING_INPUT,
+            {
+              chartId: data.chartId,
+              sessionId: data.sessionId,
+              sessionToken: data.sessionToken,
+              freePayload: data.hook_proof_json,
+              paidPayload: data.full_blueprint_json,
+              isUnlocked: data.isUnlocked,
+              unlockTier: data.unlockTier,
+              moonBoundaryFlag: data.moonBoundaryFlag,
+              hardResetFeedback: data.accuracyFeedback,
+              modelVersion: data.modelVersion,
+            }
+          );
+          setSession(hydrated);
+          return;
+        }
+      } catch {
+        // Fallback below
+      }
+      if (!cancelled) {
+        setSession(loadSession(sid));
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
   }, [params?.sessionId]);
 
   const handleCheckout = () => {
     setProcessing(true);
+    const targetId = session?.chartId || session?.sessionId || params?.sessionId;
     setTimeout(() => {
-      unlockSession(selectedTier);
-      router.push("/blueprint");
-    }, 600);
+      if (targetId && targetId !== "demo-session") {
+        router.push(`/blueprint?session=${encodeURIComponent(targetId)}`);
+      } else {
+        router.push("/blueprint");
+      }
+    }, 350);
   };
 
   const firstName = session?.input.firstName || "Your";

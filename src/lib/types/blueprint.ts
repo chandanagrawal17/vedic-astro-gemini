@@ -16,8 +16,8 @@ export type CareerMode =
 
 export type HardResetFeedback =
   | "scarily_accurate"
-  | "partially_true"
-  | "not_quite";
+  | "close"
+  | "off";
 
 export type HookKey =
   | "hard_reset"
@@ -86,6 +86,7 @@ export interface BlueprintFreePayload {
       percentComplete: number;
     };
   };
+  upgrade_hint?: string | null;
 }
 
 export interface BlueprintPaidPayload {
@@ -135,12 +136,14 @@ export interface ReflectionNote {
 }
 
 export interface BlueprintSession {
+  chartId?: string;
   sessionId: string;
   sessionToken?: string;
   moonBoundaryFlag?: boolean;
+  modelVersion?: string | null;
   input: OnboardingInput;
   freePayload: BlueprintFreePayload;
-  paidPayload: BlueprintPaidPayload;
+  paidPayload: BlueprintPaidPayload | null;
   hardResetFeedback: HardResetFeedback | null;
   isUnlocked: boolean;
   unlockTier: "one_time_19" | "annual_39" | null;

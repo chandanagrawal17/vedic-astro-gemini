@@ -1,12 +1,15 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { Suspense, useCallback, useEffect, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import {
   Briefcase,
   Clock,
   Flame,
   Heart,
+  Lock,
   Plus,
+  RotateCcw,
   ShieldAlert,
   Sparkles,
   X,
@@ -16,12 +19,21 @@ import { ObsidianCard } from "@/components/ui/ObsidianCard";
 import { SolarOrbHero } from "@/components/ui/SolarOrbHero";
 import { LifeChaptersArc } from "@/components/blueprint/LifeChaptersArc";
 import { AlignmentMeter } from "@/components/blueprint/AlignmentMeter";
-import { BlueprintSession, HookKey } from "@/lib/types/blueprint";
+import {
+  BlueprintFreePayload,
+  BlueprintPaidPayload,
+  BlueprintSession,
+  HardResetFeedback,
+  HookKey,
+  OnboardingInput,
+} from "@/lib/types/blueprint";
 import {
   addReflection,
   loadSession,
-  refreshSessionBirthTime,
+  loadStoredSession,
+  saveSynthesizedSession,
 } from "@/lib/store/sessionStore";
+import { DEFAULT_ONBOARDING_INPUT } from "@/lib/mock/blueprintMock";
 
 type HubTab = "overview" | "eras" | "career" | "love" | "blind_spot";
 
@@ -33,31 +45,187 @@ const TABS: { id: HubTab; label: string; hookKey: HookKey }[] = [
   { id: "blind_spot", label: "Blind Spot", hookKey: "self_sabotage" },
 ];
 
-export default function BlueprintHubPage() {
+interface BlueprintApiResponse {
+  chartId: string;
+  sessionId: string;
+  sessionToken: string;
+  moonBoundaryFlag?: boolean;
+  modelVersion?: string | null;
+  isUnlocked: boolean;
+  unlockTier?: "one_time_19" | "annual_39" | null;
+  accuracyFeedback?: HardResetFeedback | null;
+  hook_proof_json: BlueprintFreePayload;
+  full_blueprint_json: BlueprintPaidPayload | null;
+  input?: OnboardingInput;
+  error?: string;
+}
+
+function BlueprintLoadingSkeleton() {
+  return (
+    <SolarShell showDisclaimer={false}>
+      <div className="flex-1 px-5 pt-7 pb-12 space-y-5">
+        <div className="flex flex-col items-center">
+          <SolarOrbHero size="sm" />
+          <div className="mt-3 h-7 w-48 rounded-lg bg-[#FDF6EE]/10 animate-pulse" />
+          <div className="mt-2 h-3.5 w-36 rounded-full bg-[#B8A99E]/15 animate-pulse" />
+        </div>
+        <div className="h-10 w-full rounded-xl bg-[#1C130E]/80 animate-pulse" />
+        <ObsidianCard warmTint>
+          <div className="h-4 w-36 rounded-full bg-[#F5A65B]/15 animate-pulse" />
+          <div className="mt-4 h-8 w-44 rounded-lg bg-[#FDF6EE]/10 animate-pulse" />
+          <div className="mt-4 space-y-2">
+            <div className="h-3.5 w-full rounded bg-[#D9CEC5]/10 animate-pulse" />
+            <div className="h-3.5 w-5/6 rounded bg-[#D9CEC5]/10 animate-pulse" />
+            <div className="h-3.5 w-4/6 rounded bg-[#D9CEC5]/10 animate-pulse" />
+          </div>
+        </ObsidianCard>
+      </div>
+    </SolarShell>
+  );
+}
+
+function BlueprintHubContent() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const queryTargetId =
+    searchParams.get("session") || searchParams.get("chartId");
+
   const [session, setSession] = useState<BlueprintSession | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<HubTab>("overview");
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [noteInput, setNoteInput] = useState("");
   const [showTimeModal, setShowTimeModal] = useState(false);
   const [newTime, setNewTime] = useState("08:30");
+  const [refreshingTime, setRefreshingTime] = useState(false);
+  const [refreshError, setRefreshError] = useState<string | null>(null);
 
-  useEffect(() => {
-    setSession(loadSession());
+  const loadBlueprint = useCallback(async (targetId: string) => {
+    setErrorMsg(null);
+    setLoading(true);
+    const stored = loadStoredSession(targetId);
+
+    try {
+      const tokenParam = stored?.sessionToken
+        ? `?sessionToken=${encodeURIComponent(stored.sessionToken)}`
+        : "";
+      const res = await fetch(
+        `/api/blueprint/${encodeURIComponent(targetId)}${tokenParam}`
+      );
+      const data = (await res.json()) as BlueprintApiResponse;
+      if (!res.ok) {
+        throw new Error(data.error || "Unable to load your Blueprint.");
+      }
+
+      const hydrated = saveSynthesizedSession(
+        data.input ?? stored?.input ?? DEFAULT_ONBOARDING_INPUT,
+        {
+          chartId: data.chartId,
+          sessionId: data.sessionId,
+          sessionToken: data.sessionToken,
+          freePayload: data.hook_proof_json,
+          paidPayload: data.full_blueprint_json,
+          isUnlocked: data.isUnlocked,
+          unlockTier: data.unlockTier,
+          moonBoundaryFlag: data.moonBoundaryFlag,
+          hardResetFeedback: data.accuracyFeedback,
+          modelVersion: data.modelVersion,
+        }
+      );
+      setSession(hydrated);
+    } catch (err) {
+      setErrorMsg(
+        err instanceof Error ? err.message : "Unable to load your Blueprint."
+      );
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
-  if (!session) {
+  useEffect(() => {
+    const stored = loadStoredSession();
+    const targetId =
+      queryTargetId || stored?.chartId || stored?.sessionId || null;
+
+    if (!targetId || targetId === "demo-session") {
+      setSession(loadSession("demo-session"));
+      setLoading(false);
+      return;
+    }
+
+    void loadBlueprint(targetId);
+  }, [queryTargetId, loadBlueprint]);
+
+  if (loading) {
+    return <BlueprintLoadingSkeleton />;
+  }
+
+  if (!session && errorMsg) {
+    const retryId = queryTargetId || loadStoredSession()?.chartId || loadStoredSession()?.sessionId;
     return (
       <SolarShell showDisclaimer={false}>
-        <div className="flex flex-1 items-center justify-center">
-          <p className="font-serif text-[20px] text-[#B8A99E]">
-            Opening your Blueprint...
-          </p>
+        <div className="flex flex-1 flex-col items-center justify-center px-6 text-center">
+          <div className="w-full max-w-[340px] rounded-[22px] border border-[#F5A65B]/20 bg-[#1C130E]/85 p-6">
+            <p className="font-serif text-[22px] text-[#FDF6EE]">
+              Unable to Open Blueprint
+            </p>
+            <p className="mt-2 text-[13px] leading-relaxed text-[#B8A99E]">
+              {errorMsg}
+            </p>
+            {retryId && (
+              <button
+                type="button"
+                onClick={() => void loadBlueprint(retryId)}
+                className="mt-5 inline-flex w-full items-center justify-center gap-2 rounded-full py-3 px-5 font-sans text-[14px] font-semibold text-[#0D0907] bg-gradient-to-r from-[#FF7E42] to-[#F5A65B]"
+              >
+                <RotateCcw className="h-4 w-4" />
+                <span>Retry</span>
+              </button>
+            )}
+          </div>
         </div>
       </SolarShell>
     );
   }
 
+  if (!session) {
+    return <BlueprintLoadingSkeleton />;
+  }
+
   const { input, freePayload, paidPayload, reflections } = session;
+
+  // Enforce paywall state: if server redacted full_blueprint_json, never show mock data
+  if (!paidPayload) {
+    return (
+      <SolarShell>
+        <div className="flex flex-1 flex-col items-center justify-center px-6 text-center">
+          <div className="w-full max-w-[360px] rounded-[24px] border border-[#F5A65B]/25 bg-[#1C130E]/85 p-6">
+            <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-[#FF6B2B]/15 border border-[#FF6B2B]/35 text-[#F5A65B]">
+              <Lock className="h-5 w-5" />
+            </div>
+            <h1 className="mt-4 font-serif text-[26px] leading-tight text-[#FDF6EE]">
+              {input.firstName}&rsquo;s Full Blueprint Is Locked
+            </h1>
+            <p className="mt-2 text-[13px] leading-relaxed text-[#B8A99E]">
+              Unlock your complete 5-module Blueprint to access your full Hard
+              Reset analysis, Era 3 Playbook, Career Verdict, Relationship
+              Shifts, and Self-Sabotage Antidote.
+            </p>
+            <button
+              type="button"
+              onClick={() => router.push(`/unlock/${session.sessionId}`)}
+              className="mt-5 inline-flex w-full items-center justify-center gap-2 rounded-full py-3.5 px-6 font-sans text-[15px] font-semibold text-[#0D0907] bg-gradient-to-r from-[#FF7E42] to-[#F5A65B] shadow-[0_8px_28px_-6px_rgba(255,107,43,0.5)] active:scale-[0.98] transition"
+            >
+              <Sparkles className="h-4 w-4" />
+              <span>Unlock Full Blueprint</span>
+            </button>
+          </div>
+        </div>
+      </SolarShell>
+    );
+  }
+
   const currentTabConfig = TABS.find((t) => t.id === activeTab)!;
   const tabReflections = reflections.filter(
     (r) => r.hookKey === currentTabConfig.hookKey
@@ -72,11 +240,76 @@ export default function BlueprintHubPage() {
     setDrawerOpen(false);
   };
 
-  const handleRefreshBirthTime = (e: React.FormEvent) => {
+  const handleRefreshBirthTime = async (e: React.FormEvent) => {
     e.preventDefault();
-    const updated = refreshSessionBirthTime(newTime);
-    setSession(updated);
-    setShowTimeModal(false);
+    setRefreshError(null);
+    setRefreshingTime(true);
+
+    try {
+      const updatedInput: OnboardingInput = {
+        ...session.input,
+        precisionMode: "exact",
+        birthTime: newTime,
+        birthWindow: null,
+      };
+
+      const calcRes = await fetch("/api/charts/calculate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          ...updatedInput,
+          sessionToken: session.sessionToken ?? session.sessionId,
+        }),
+      });
+      const calcData = (await calcRes.json()) as {
+        chartId?: string;
+        sessionToken?: string;
+        error?: string;
+      };
+      if (!calcRes.ok || !calcData.chartId) {
+        throw new Error(calcData.error || "Failed to recalculate chart.");
+      }
+
+      const synthRes = await fetch("/api/blueprint/synthesize", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          chartId: calcData.chartId,
+          sessionToken: calcData.sessionToken,
+          firstName: updatedInput.firstName,
+          relationshipStatus: updatedInput.relationshipStatus,
+          careerMode: updatedInput.careerMode,
+          careerField: updatedInput.careerField,
+        }),
+      });
+      const synthData = (await synthRes.json()) as BlueprintApiResponse;
+      if (!synthRes.ok) {
+        throw new Error(
+          synthData.error || "Failed to refresh Blueprint synthesis."
+        );
+      }
+
+      const refreshed = saveSynthesizedSession(updatedInput, {
+        chartId: synthData.chartId,
+        sessionId: synthData.sessionId,
+        sessionToken: synthData.sessionToken,
+        freePayload: synthData.hook_proof_json,
+        paidPayload: synthData.full_blueprint_json,
+        isUnlocked: synthData.isUnlocked,
+        unlockTier: synthData.unlockTier,
+        moonBoundaryFlag: synthData.moonBoundaryFlag,
+        hardResetFeedback: synthData.accuracyFeedback,
+        modelVersion: synthData.modelVersion,
+      });
+      setSession(refreshed);
+      setShowTimeModal(false);
+    } catch (err) {
+      setRefreshError(
+        err instanceof Error ? err.message : "Unable to refresh right now."
+      );
+    } finally {
+      setRefreshingTime(false);
+    }
   };
 
   return (
@@ -99,8 +332,8 @@ export default function BlueprintHubPage() {
             <div className="flex items-start gap-2.5">
               <Clock className="mt-0.5 h-4 w-4 shrink-0 text-[#F5A65B]" />
               <p className="text-[12px] leading-snug text-[#FDF6EE]">
-                Found your exact birth time? Add it anytime for a free Deep
-                Blueprint refresh.
+                {freePayload.upgrade_hint ||
+                  "Found your exact birth time? Add it anytime for a free Deep Blueprint refresh."}
               </p>
             </div>
             <button
@@ -533,16 +766,28 @@ export default function BlueprintHubPage() {
                 onChange={(e) => setNewTime(e.target.value)}
                 className="w-full rounded-xl border border-[#F5A65B]/20 bg-[#120C09] px-3.5 py-3 text-[15px] text-[#FDF6EE] focus:border-[#FF6B2B] focus:outline-none"
               />
+              {refreshError && (
+                <p className="text-[12px] text-[#F87171]">{refreshError}</p>
+              )}
               <button
                 type="submit"
-                className="w-full rounded-full py-3 px-5 text-[14px] font-semibold text-[#0D0907] bg-gradient-to-r from-[#FF7E42] to-[#F5A65B]"
+                disabled={refreshingTime}
+                className="w-full rounded-full py-3 px-5 text-[14px] font-semibold text-[#0D0907] bg-gradient-to-r from-[#FF7E42] to-[#F5A65B] disabled:opacity-60"
               >
-                Refresh My Blueprint
+                {refreshingTime ? "Refreshing Blueprint..." : "Refresh My Blueprint"}
               </button>
             </form>
           </div>
         </div>
       )}
     </SolarShell>
+  );
+}
+
+export default function BlueprintHubPage() {
+  return (
+    <Suspense fallback={<BlueprintLoadingSkeleton />}>
+      <BlueprintHubContent />
+    </Suspense>
   );
 }

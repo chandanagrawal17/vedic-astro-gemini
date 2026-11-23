@@ -83,7 +83,7 @@ export const DEFAULT_ONBOARDING_INPUT: OnboardingInput = {
 export function buildMockBlueprint(
   input: OnboardingInput,
   sessionId = "demo-session"
-): BlueprintSession {
+): BlueprintSession & { paidPayload: BlueprintPaidPayload } {
   const rawName = input.firstName.trim() || "Alex";
   const name = rawName.split(/\s+/)[0];
   const isPartnered =

@@ -2,11 +2,11 @@
 
 import {
   BlueprintFreePayload,
+  BlueprintPaidPayload,
   BlueprintSession,
   HardResetFeedback,
   HookKey,
   OnboardingInput,
-  PrecisionMode,
 } from "@/lib/types/blueprint";
 import {
   buildMockBlueprint,
@@ -24,35 +24,59 @@ function generateClientSessionToken(): string {
 
 export function createAndSaveSession(input: OnboardingInput): BlueprintSession {
   const sessionToken = generateClientSessionToken();
-  const session = buildMockBlueprint(input, sessionToken);
-  session.sessionToken = sessionToken;
+  const base = buildMockBlueprint(input, sessionToken);
+  const session: BlueprintSession = {
+    ...base,
+    sessionToken,
+    paidPayload: null,
+    modelVersion: null,
+  };
   saveSession(session);
   return session;
 }
 
-export function saveCalculatedSession(
+export function saveSynthesizedSession(
   input: OnboardingInput,
   payload: {
+    chartId?: string;
     sessionId: string;
     sessionToken: string;
     freePayload: BlueprintFreePayload;
+    paidPayload?: BlueprintPaidPayload | null;
+    isUnlocked?: boolean;
+    unlockTier?: "one_time_19" | "annual_39" | null;
     moonBoundaryFlag?: boolean;
     hardResetFeedback?: HardResetFeedback | null;
+    modelVersion?: string | null;
   }
 ): BlueprintSession {
-  const existing = loadSession();
-  const base = buildMockBlueprint(input, payload.sessionId);
+  const existing = loadStoredSession(payload.sessionId);
   const updated: BlueprintSession = {
-    ...base,
+    chartId: payload.chartId ?? existing?.chartId,
     sessionId: payload.sessionId,
     sessionToken: payload.sessionToken,
-    moonBoundaryFlag: payload.moonBoundaryFlag ?? false,
+    moonBoundaryFlag: payload.moonBoundaryFlag ?? existing?.moonBoundaryFlag ?? false,
+    modelVersion: payload.modelVersion ?? existing?.modelVersion ?? null,
+    input,
     freePayload: payload.freePayload,
+    paidPayload:
+      payload.paidPayload !== undefined
+        ? payload.paidPayload
+        : existing?.paidPayload ?? null,
     hardResetFeedback:
-      payload.hardResetFeedback ?? existing.hardResetFeedback ?? null,
-    isUnlocked: existing.sessionId === payload.sessionId ? existing.isUnlocked : false,
-    unlockTier: existing.sessionId === payload.sessionId ? existing.unlockTier : null,
-    reflections: existing.sessionId === payload.sessionId ? existing.reflections : [],
+      payload.hardResetFeedback !== undefined
+        ? payload.hardResetFeedback
+        : existing?.hardResetFeedback ?? null,
+    isUnlocked:
+      payload.isUnlocked !== undefined
+        ? payload.isUnlocked
+        : existing?.isUnlocked ?? false,
+    unlockTier:
+      payload.unlockTier !== undefined
+        ? payload.unlockTier
+        : existing?.unlockTier ?? null,
+    reflections: existing?.reflections ?? [],
+    createdAt: existing?.createdAt ?? new Date().toISOString(),
   };
   saveSession(updated);
   return updated;
@@ -67,20 +91,30 @@ export function saveSession(session: BlueprintSession): void {
   }
 }
 
-export function loadSession(sessionId?: string): BlueprintSession {
-  if (typeof window !== "undefined") {
-    try {
-      const raw = window.sessionStorage.getItem(STORAGE_KEY);
-      if (raw) {
-        const parsed = JSON.parse(raw) as BlueprintSession;
-        if (!sessionId || parsed.sessionId === sessionId) {
-          return parsed;
-        }
-      }
-    } catch {
-      // Fallback to default deterministic session
+export function loadStoredSession(
+  sessionIdOrChartId?: string
+): BlueprintSession | null {
+  if (typeof window === "undefined") return null;
+  try {
+    const raw = window.sessionStorage.getItem(STORAGE_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as BlueprintSession;
+    if (
+      !sessionIdOrChartId ||
+      parsed.sessionId === sessionIdOrChartId ||
+      parsed.chartId === sessionIdOrChartId
+    ) {
+      return parsed;
     }
+    return null;
+  } catch {
+    return null;
   }
+}
+
+export function loadSession(sessionId?: string): BlueprintSession {
+  const stored = loadStoredSession(sessionId);
+  if (stored) return stored;
   const fallback = buildMockBlueprint(
     DEFAULT_ONBOARDING_INPUT,
     sessionId || "demo-session"
@@ -90,15 +124,7 @@ export function loadSession(sessionId?: string): BlueprintSession {
 }
 
 export function hasStoredSession(sessionId?: string): boolean {
-  if (typeof window === "undefined") return false;
-  try {
-    const raw = window.sessionStorage.getItem(STORAGE_KEY);
-    if (!raw) return false;
-    const parsed = JSON.parse(raw) as BlueprintSession;
-    return !sessionId || parsed.sessionId === sessionId;
-  } catch {
-    return false;
-  }
+  return loadStoredSession(sessionId) !== null;
 }
 
 export function updateSessionFeedback(
@@ -140,27 +166,6 @@ export function addReflection(
   const updated: BlueprintSession = {
     ...current,
     reflections: [note, ...current.reflections],
-  };
-  saveSession(updated);
-  return updated;
-}
-
-export function refreshSessionBirthTime(birthTime: string): BlueprintSession {
-  const current = loadSession();
-  const updatedInput: OnboardingInput = {
-    ...current.input,
-    precisionMode: "exact" as PrecisionMode,
-    birthTime,
-    birthWindow: null,
-  };
-  const regenerated = buildMockBlueprint(updatedInput, current.sessionId);
-  const updated: BlueprintSession = {
-    ...regenerated,
-    sessionToken: current.sessionToken,
-    hardResetFeedback: current.hardResetFeedback,
-    isUnlocked: current.isUnlocked,
-    unlockTier: current.unlockTier,
-    reflections: current.reflections,
   };
   saveSession(updated);
   return updated;
