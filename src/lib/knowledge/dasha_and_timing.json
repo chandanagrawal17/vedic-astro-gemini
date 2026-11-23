@@ -96,5 +96,52 @@
   "dasha_and_muhurtha_principles": {
     "functional_dignity": "Evaluate a planet's Dasha impact by the houses it rules for the user's Ascendant—kendra and trikona lords support growth, while dusthana or heavy functional friction calls for steadier pacing[cite: 8].",
     "electional_timing": "Use timing windows to support intentional action rather than relying on rigid determinism; avoid starting high-stakes commitments during peak emotional or transit strain[cite: 1, 10]."
+  },
+  "period_lord_themes": {
+    "Sun": {
+      "focus": "Visibility, personal authority, stepping into clearer leadership, and cutting out roles where you stay muted.",
+      "pacing_risk": "Over-identifying with outcomes or carrying decisions solo instead of delegating.",
+      "agency_lever": "Claim one visible lane of ownership and communicate crisp standards early."
+    },
+    "Moon": {
+      "focus": "Emotional alignment, home and belonging, intuitive trust, and building work that feels human.",
+      "pacing_risk": "Letting fluctuating energy or other people's moods dictate daily commitments.",
+      "agency_lever": "Protect sleep and recovery rhythms so emotional clarity stays steady."
+    },
+    "Mars": {
+      "focus": "Decisive execution, clearing stagnation, physical stamina, and tackling hard builds head-on.",
+      "pacing_risk": "Burnout from nonstop urgency, impatience, or reactive conflict when blocked.",
+      "agency_lever": "Channel drive into time-boxed sprints with deliberate cool-downs before high-stakes replies."
+    },
+    "Mercury": {
+      "focus": "Skill compounding, writing, negotiation, product/process clarity, and versatile problem-solving.",
+      "pacing_risk": "Mental scatter across too many tabs or over-editing plans past the point of shipping.",
+      "agency_lever": "Pick one core craft or commercial thread to finish and get agreements in writing."
+    },
+    "Jupiter": {
+      "focus": "Long-horizon expansion, mentorship, credibility, learning, and principled growth.",
+      "pacing_risk": "Over-committing time or trusting optimism over day-to-day operational checks.",
+      "agency_lever": "Double down on high-integrity alliances and match big vision with weekly milestones."
+    },
+    "Venus": {
+      "focus": "Relational warmth, creative craft, quality of life, financial ease, and collaborative harmony.",
+      "pacing_risk": "Softening boundaries to keep the peace or drifting toward comfort over honest conversations.",
+      "agency_lever": "Pair warmth and taste with clear personal terms and explicit reciprocity."
+    },
+    "Saturn": {
+      "focus": "Structural rebuilding, disciplined habits, pruning dead weight, and earning durable long-game leverage.",
+      "pacing_risk": "Chronic self-pressure, fatigue from carrying heavy duty alone, or delaying joy.",
+      "agency_lever": "Simplify commitments to essentials and build repeatable routines that protect energy."
+    },
+    "Rahu": {
+      "focus": "Unconventional leaps, rapid reinvention, cross-disciplinary ambition, and breaking out of stale boxes.",
+      "pacing_risk": "Restless urgency, comparison, or chasing novelty before consolidating current gains.",
+      "agency_lever": "Anchor bold pivots in measurable 90-day experiments and grounded cash-runway math."
+    },
+    "Ketu": {
+      "focus": "Stripping away performative noise, deep specialization, inner autonomy, and quiet recalibration.",
+      "pacing_risk": "Emotional detachment or walking away from workable setups instead of renegotiating boundaries.",
+      "agency_lever": "Simplify your calendar, lean into authentic craft, and stay transparent with close allies."
+    }
   }
 }

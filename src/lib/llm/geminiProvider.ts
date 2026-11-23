@@ -32,11 +32,50 @@ function isRateLimitError(err: unknown, message: string): boolean {
   );
 }
 
+const DEFAULT_GEMINI_FALLBACK_MODELS = [
+  "gemini-3.6-flash",
+  "gemini-3.1-flash-lite",
+  "gemini-3.7-flash",
+  "gemini-3.5-flash",
+];
+
+function parseFallbackModels(
+  primaryModel: string,
+  options?: { fallbackModel?: string | null; fallbackModels?: string[] }
+): string[] {
+  let rawList: string[];
+  if (options?.fallbackModels !== undefined) {
+    rawList = options.fallbackModels;
+  } else if (options?.fallbackModel !== undefined) {
+    rawList = options.fallbackModel ? [options.fallbackModel] : [];
+  } else {
+    const envMulti = readCleanEnv("GEMINI_FALLBACK_MODELS");
+    const envSingle = readCleanEnv("GEMINI_FALLBACK_MODEL");
+    if (envMulti) {
+      rawList = envMulti.split(",").map((s) => s.trim()).filter(Boolean);
+    } else if (envSingle) {
+      rawList = [envSingle, ...DEFAULT_GEMINI_FALLBACK_MODELS];
+    } else {
+      rawList = DEFAULT_GEMINI_FALLBACK_MODELS;
+    }
+  }
+
+  const seen = new Set<string>([primaryModel]);
+  const deduped: string[] = [];
+  for (const model of rawList) {
+    if (model && !seen.has(model)) {
+      seen.add(model);
+      deduped.push(model);
+    }
+  }
+  return deduped;
+}
+
 export class GeminiLlmProvider implements LlmProvider {
   public readonly providerName = "gemini";
   public modelName: string;
   private readonly primaryModel: string;
-  private readonly fallbackModel: string | null;
+  private readonly fallbackModels: string[];
   private readonly apiKey: string;
   private readonly rateLimitBackoffMs: number;
 
@@ -44,6 +83,7 @@ export class GeminiLlmProvider implements LlmProvider {
     apiKey?: string;
     modelName?: string;
     fallbackModel?: string | null;
+    fallbackModels?: string[];
     rateLimitBackoffMs?: number;
   }) {
     if (typeof window !== "undefined") {
@@ -60,13 +100,7 @@ export class GeminiLlmProvider implements LlmProvider {
     this.primaryModel =
       options?.modelName || readCleanEnv("GEMINI_MODEL") || "gemini-3.8-flash";
     this.modelName = this.primaryModel;
-
-    const envFallback =
-      options?.fallbackModel !== undefined
-        ? options.fallbackModel
-        : readCleanEnv("GEMINI_FALLBACK_MODEL") || "gemini-3.1-flash-lite";
-    this.fallbackModel =
-      envFallback && envFallback !== this.primaryModel ? envFallback : null;
+    this.fallbackModels = parseFallbackModels(this.primaryModel, options);
     this.rateLimitBackoffMs = options?.rateLimitBackoffMs ?? 3000;
   }
 
@@ -157,9 +191,18 @@ export class GeminiLlmProvider implements LlmProvider {
       const isTransient =
         msg.includes("503") || msg.includes("UNAVAILABLE");
 
+      if (isTransient) {
+        console.warn(`[GeminiLlmProvider] ${model} 503 UNAVAILABLE:`, msg);
+        throw new LlmProviderError(
+          "Our synthesis engine is experiencing brief high demand. Please tap Retry in a few seconds.",
+          503,
+          false
+        );
+      }
+
       throw new LlmProviderError(
         `Gemini API error: ${msg}`,
-        isTransient ? 503 : 502,
+        502,
         false
       );
     } finally {
@@ -200,8 +243,7 @@ export class GeminiLlmProvider implements LlmProvider {
 
     const invokeWithRetries = async (
       model: string,
-      attemptTimeout: number,
-      retryOn503: boolean
+      attemptTimeout: number
     ): Promise<T> => {
       try {
         return await runAttempt(model, userContent, attemptTimeout);
@@ -213,8 +255,8 @@ export class GeminiLlmProvider implements LlmProvider {
           await new Promise((r) => setTimeout(r, this.rateLimitBackoffMs));
           return await runAttempt(model, userContent, attemptTimeout);
         }
-        if (err instanceof LlmProviderError && err.statusCode === 503 && retryOn503) {
-          const backoffMs = 2500;
+        if (err instanceof LlmProviderError && err.statusCode === 503) {
+          const backoffMs = 1500 + Math.floor(Math.random() * 750);
           console.warn(
             `[GeminiLlmProvider] HTTP 503 on ${model}; backing off ${backoffMs}ms and retrying 1x.`
           );
@@ -232,20 +274,20 @@ export class GeminiLlmProvider implements LlmProvider {
       }
     };
 
-    const modelsToTry = this.fallbackModel
-      ? [this.primaryModel, this.fallbackModel]
-      : [this.primaryModel, this.primaryModel];
+    const modelsToTry =
+      this.fallbackModels.length > 0
+        ? [this.primaryModel, ...this.fallbackModels]
+        : [this.primaryModel, this.primaryModel];
 
     let lastErr: unknown;
     for (let i = 0; i < modelsToTry.length; i++) {
       const model = modelsToTry[i];
       const isLastAttempt = i === modelsToTry.length - 1;
-      const attemptTimeout =
-        i === 0 && this.fallbackModel
-          ? Math.min(timeoutMs, 15000)
-          : Math.max(timeoutMs, 35000);
+      const attemptTimeout = !isLastAttempt
+        ? Math.max(timeoutMs, 22000)
+        : Math.max(timeoutMs, 35000);
       try {
-        return await invokeWithRetries(model, attemptTimeout, isLastAttempt);
+        return await invokeWithRetries(model, attemptTimeout);
       } catch (err) {
         lastErr = err;
         const canFallback =

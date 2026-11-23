@@ -52,34 +52,55 @@ async function main() {
   assert.ok(exactCtx.nakshatraTraits.moon?.gunaEmphasis.primary.label.length);
   assert.ok(exactCtx.nakshatraTraits.moon?.coreDrive.description.length);
 
-  // Active houses & planet-in-house patterns (Mars in 6, Venus in 7)
+  // Active houses & planet-in-house patterns (Moon@1, Sun@6, Mars@6, Mercury@6, Venus@7, Rahu@10, Ketu@4 + House 3 Jupiter)
   const houseNums = exactCtx.activeHouses.map((h) => h.house);
-  assert.ok(houseNums.includes(1) && houseNums.includes(6) && houseNums.includes(7) && houseNums.includes(10));
   assert.ok(
-    exactCtx.planetPatterns.some((p) => p.planet === "Mars" && p.house === 6),
-    "Expected Mars in house 6 pattern"
+    houseNums.includes(1) &&
+      houseNums.includes(3) &&
+      houseNums.includes(6) &&
+      houseNums.includes(7) &&
+      houseNums.includes(10),
+    `Expected houses 1, 3, 6, 7, 10 in activeHouses, got ${houseNums.join(", ")}`
   );
-  assert.ok(
-    exactCtx.planetPatterns.some((p) => p.planet === "Venus" && p.house === 7),
-    "Expected Venus in house 7 pattern"
-  );
+  for (const [planet, house] of [
+    ["Moon", 1],
+    ["Sun", 6],
+    ["Mars", 6],
+    ["Mercury", 6],
+    ["Venus", 7],
+    ["Rahu", 10],
+    ["Ketu", 4],
+  ] as const) {
+    assert.ok(
+      exactCtx.planetPatterns.some((p) => p.planet === planet && p.house === house),
+      `Expected ${planet} in house ${house} pattern`
+    );
+  }
 
-  // Timing & Transit Moon State (house 10)
+  // Timing, Current Chapter Theme & Transit Moon State (house 10)
   assert.equal(exactCtx.timing.transitMoonState?.house, 10);
   assert.equal(exactCtx.timing.transitMoonState?.textOrWait, "GREEN");
   assert.deepEqual(exactCtx.timing.transitMoonState?.bandwidthRange, [78, 92]);
   assert.ok(exactCtx.timing.principles.functionalDignity.length > 10);
   assert.ok(exactCtx.timing.bandwidthThresholds.strongHouseSavMin === 28);
+  assert.ok(exactCtx.timing.currentChapterTheme, "Expected currentChapterTheme for active era3 lord");
+  assert.ok(exactCtx.timing.currentChapterTheme.focus.length > 10);
+  assert.ok(exactCtx.timing.currentChapterTheme.pacingRisk.length > 10);
+  assert.ok(exactCtx.timing.currentChapterTheme.agencyLever.length > 10);
 
-  // Relationship guardrails
+  // Relationship guardrails + all 8 compatibilityDimensions (from compatibility_kutas.json)
   assert.ok(exactCtx.relationship.coreLenses.attractionAndChemistry.length > 10);
   assert.ok(exactCtx.relationship.coreLenses.innerBondAndDurability.length > 10);
   assert.ok(exactCtx.relationship.frictionGuardrails.driveHeatFriction.length > 10);
   assert.ok(exactCtx.relationship.frictionGuardrails.avoidSuperficialRejection.length > 10);
+  for (const [k, v] of Object.entries(exactCtx.relationship.compatibilityDimensions)) {
+    assert.ok(v.length > 10 && !v.includes("[cite:"), `Invalid compatibilityDimension ${k}: ${v}`);
+  }
 
   // Dosha wellness routines (Aries Fire Lagna/Moon -> pitta)
   assert.equal(exactCtx.wellness.primaryDosha, "pitta");
   assert.ok(exactCtx.wellness.stressSignature && exactCtx.wellness.stressSignature.length > 10);
+  assert.ok(exactCtx.wellness.quickMicroAnchor && exactCtx.wellness.quickMicroAnchor.length > 10);
   assert.equal(exactCtx.wellness.dailyReset.length, 3);
   assert.ok(exactCtx.wellness.somaticReset.bodyAnchor.length > 10);
   assert.ok(exactCtx.wellness.somaticReset.breathPause.length > 10);
@@ -112,6 +133,7 @@ async function main() {
   assert.equal(dateOnlyCtx.referenceLenses.publicImageLens, undefined);
   assert.equal(dateOnlyCtx.nakshatraTraits.lagna, null);
   assert.equal(dateOnlyCtx.timing.currentChapterDignity, null);
+  assert.ok(dateOnlyCtx.timing.currentChapterTheme, "date_only still resolves currentChapterTheme");
 
   const expectedDigit = computeChaldeanDigit({ fullName: "Maya Lin", dob: "1992-06-15" });
   assert.ok(expectedDigit && dateOnlyCtx.numerologyFallback);

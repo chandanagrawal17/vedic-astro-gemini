@@ -25,7 +25,7 @@ import type {
   PlanetPlacement,
 } from "@/lib/astro/types";
 
-export const RULE_MATCHER_VERSION = "v1_knowledge_rulebooks";
+export const RULE_MATCHER_VERSION = "v2_expanded_rulebooks";
 
 /* -------------------------------------------------------------------------- */
 /*                          Rulebook shape definitions                         */
@@ -79,6 +79,12 @@ interface TransitMoonStateRule {
   guidance: string;
 }
 
+interface PeriodLordThemeRule {
+  focus: string;
+  pacing_risk: string;
+  agency_lever: string;
+}
+
 interface TimingRulebook {
   transit_moon_house_states: Record<string, TransitMoonStateRule>;
   ashtakavarga_thresholds: {
@@ -91,6 +97,7 @@ interface TimingRulebook {
     functional_dignity: string;
     electional_timing: string;
   };
+  period_lord_themes: Record<string, PeriodLordThemeRule>;
 }
 
 interface CompatibilityRulebook {
@@ -98,6 +105,10 @@ interface CompatibilityRulebook {
     attraction_and_chemistry: string;
     inner_bond_and_durability: string;
   };
+  kuta_psychological_translations: Record<
+    "varna" | "vasya" | "tara" | "yoni" | "graha_maitri" | "gana" | "bhakoot" | "nadi",
+    string
+  >;
   dosha_and_friction_guardrails: {
     kuja_or_mars_friction: string;
     avoid_superficial_rejection: string;
@@ -105,7 +116,10 @@ interface CompatibilityRulebook {
 }
 
 interface AyurvedaRulebook {
-  dosha_profiles: Record<DoshaKey, { elements: string; stress_signature: string; daily_reset: string[] }>;
+  dosha_profiles: Record<
+    DoshaKey,
+    { elements: string; stress_signature: string; quick_micro_anchor?: string; daily_reset: string[] }
+  >;
   somatic_90_second_reset: {
     step_1_body_anchor: string;
     step_2_breath_pause: string;
@@ -198,6 +212,15 @@ export interface CurrentChapterDignityContext {
   pacingSignal: "supportive" | "mixed" | "steadyPacing";
 }
 
+export interface CurrentChapterThemeContext {
+  periodLord: string;
+  dateRange: string;
+  focus: string;
+  pacingRisk: string;
+  agencyLever: string;
+  subPeriodFocus: string | null;
+}
+
 export interface MatchedKnowledgeContext {
   ruleMatcherVersion: string;
   precisionMode: AstroPrecisionMode;
@@ -228,11 +251,22 @@ export interface MatchedKnowledgeContext {
     };
     transitMoonState: TransitMoonStateContext | null;
     currentChapterDignity: CurrentChapterDignityContext | null;
+    currentChapterTheme: CurrentChapterThemeContext | null;
   };
   relationship: {
     coreLenses: {
       attractionAndChemistry: string;
       innerBondAndDurability: string;
+    };
+    compatibilityDimensions: {
+      sharedValues: string;
+      mutualInfluence: string;
+      dailyRhythm: string;
+      physicalRapport: string;
+      mentalFriendship: string;
+      stressTemperament: string;
+      domesticFlow: string;
+      nervousSystemPacing: string;
     };
     frictionGuardrails: {
       driveHeatFriction: string;
@@ -245,6 +279,7 @@ export interface MatchedKnowledgeContext {
     secondaryDosha: DoshaKey | null;
     elementSources: Array<{ source: "lagna" | "moon" | "sun"; sign: string; element: ElementKey }>;
     stressSignature: string | null;
+    quickMicroAnchor: string | null;
     dailyReset: string[];
     somaticReset: {
       bodyAnchor: string;
@@ -265,7 +300,7 @@ export interface MatchedKnowledgeContext {
 /* -------------------------------------------------------------------------- */
 
 /** Houses the knowledge base covers in depth. */
-export const FOCUS_HOUSES = [1, 4, 5, 6, 7, 8, 9, 10, 12] as const;
+export const FOCUS_HOUSES = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12] as const;
 
 /** Always surfaced so Hooks #1–#3 (self, love, career) have a house anchor even when empty. */
 const ANCHOR_HOUSES = new Set([1, 7, 10]);
@@ -546,6 +581,37 @@ function computeCurrentChapterDignity(
   };
 }
 
+function findPeriodLordTheme(rawPlanet: string | undefined): PeriodLordThemeRule | null {
+  if (!rawPlanet) return null;
+  const target = rawPlanet.trim().toLowerCase();
+  const entry = Object.entries(TIMING.period_lord_themes ?? {}).find(
+    ([key]) => key.toLowerCase() === target
+  );
+  return entry ? entry[1] : null;
+}
+
+function computeCurrentChapterTheme(
+  chart: NormalizedChartJson
+): CurrentChapterThemeContext | null {
+  const era = chart.eras?.era3;
+  if (!era?.planet) return null;
+  const mainTheme = findPeriodLordTheme(era.planet);
+  if (!mainTheme) return null;
+  const subTheme =
+    era.subPlanet && era.subPlanet.toLowerCase() !== era.planet.toLowerCase()
+      ? findPeriodLordTheme(era.subPlanet)
+      : null;
+
+  return {
+    periodLord: era.planet,
+    dateRange: era.dateRange,
+    focus: cleanRuleText(mainTheme.focus),
+    pacingRisk: cleanRuleText(mainTheme.pacing_risk),
+    agencyLever: cleanRuleText(mainTheme.agency_lever),
+    subPeriodFocus: subTheme ? cleanRuleText(subTheme.focus) : null,
+  };
+}
+
 /* -------------------------------------------------------------------------- */
 /*                                Main matcher                                 */
 /* -------------------------------------------------------------------------- */
@@ -681,14 +747,26 @@ export function matchChartRules(
       houseFrame === "lagna" && ascSignNo !== null
         ? computeCurrentChapterDignity(chart, ascSignNo)
         : null,
+    currentChapterTheme: computeCurrentChapterTheme(chart),
   };
 
-  // ---- 4. Relationship guardrails ------------------------------------------
+  // ---- 4. Relationship guardrails + psychological dimensions ---------------
   const marsHouse = placementsWithHouse.find((p) => p.name.toLowerCase() === "mars")?.house ?? null;
+  const kutas = COMPATIBILITY.kuta_psychological_translations;
   const relationship: MatchedKnowledgeContext["relationship"] = {
     coreLenses: {
       attractionAndChemistry: cleanRuleText(COMPATIBILITY.core_relationship_lenses.attraction_and_chemistry),
       innerBondAndDurability: cleanRuleText(COMPATIBILITY.core_relationship_lenses.inner_bond_and_durability),
+    },
+    compatibilityDimensions: {
+      sharedValues: cleanRuleText(kutas.varna),
+      mutualInfluence: cleanRuleText(kutas.vasya),
+      dailyRhythm: cleanRuleText(kutas.tara),
+      physicalRapport: cleanRuleText(kutas.yoni),
+      mentalFriendship: cleanRuleText(kutas.graha_maitri),
+      stressTemperament: cleanRuleText(kutas.gana),
+      domesticFlow: cleanRuleText(kutas.bhakoot),
+      nervousSystemPacing: cleanRuleText(kutas.nadi),
     },
     frictionGuardrails: {
       driveHeatFriction: cleanRuleText(COMPATIBILITY.dosha_and_friction_guardrails.kuja_or_mars_friction),
@@ -721,6 +799,9 @@ export function matchChartRules(
     secondaryDosha,
     elementSources,
     stressSignature: doshaProfile ? cleanRuleText(doshaProfile.stress_signature) : null,
+    quickMicroAnchor: doshaProfile?.quick_micro_anchor
+      ? cleanRuleText(doshaProfile.quick_micro_anchor)
+      : null,
     dailyReset: doshaProfile ? doshaProfile.daily_reset.map(cleanRuleText) : [],
     somaticReset: {
       bodyAnchor: cleanRuleText(somatic.step_1_body_anchor),

@@ -326,7 +326,7 @@ You MUST NEVER output ANY of the following words or concepts anywhere in any JSO
 
 KNOWLEDGE GROUNDING RULE (matched_knowledge_context):
 - Ground all behavioral insights, blind spots, relationship dynamics, career guidance, and somatic reset tips in \`matchedKnowledgeContext\` (matched_knowledge_context) and the chart signals (normalized_chart_json → internalCalculationSignals + telemetry). Synthesize them naturally into warm, everyday US mentor language—never copy rule strings verbatim and never leak any banned astrology, Sanskrit, or clinical terms.
-- Use nakshatraTraits (coreImpulse / strength / blindSpot / gunaEmphasis / coreDrive) to sharpen Hook #2 tells and Hook #4 loop naming; planetPatterns + activeHouses for Hook #1 and Hook #3 themes; relationship.coreLenses + frictionGuardrails for Hook #2 (never treat any single signal as a fixed verdict); wellness.stressSignature + dailyReset + somaticReset for nervous-system tells and antidote steps; timing.currentChapterDignity.pacingSignal for Hook #5 pacing tone.
+- Use nakshatraTraits (coreImpulse / strength / blindSpot / gunaEmphasis / coreDrive) to sharpen Hook #2 tells and Hook #4 loop naming; planetPatterns + activeHouses for Hook #1 and Hook #3 themes; relationship.coreLenses + compatibilityDimensions + frictionGuardrails for Hook #2 (never treat any single signal as a fixed verdict); wellness.stressSignature + quickMicroAnchor + dailyReset + somaticReset for nervous-system tells and antidote steps; timing.currentChapterTheme + timing.currentChapterDignity.pacingSignal for Hook #5 pacing tone.
 - Keys and labels inside matchedKnowledgeContext (e.g. dosha names, guna keys, house numbers, period lords) are INTERNAL ONLY and must never appear in output.
 - If numerologyFallback is present (no exact birth time), lean on its theme and growthEdge for core character texture instead of inventing chart detail.
 
@@ -759,7 +759,7 @@ export async function synthesizeRelationshipOnly(
 
   const systemPrompt = `You are translating \`relationshipTelemetry\` and \`matchedKnowledgeContext\` into \`hookProofRelationship\` (FREE) and \`fullBlueprintRelationship\` (PAID) using the literal placeholder ${FIRST_NAME_PLACEHOLDER} for the user's name.
 ABSOLUTE JARGON BAN: Never output any astrology, Sanskrit, planet, sign, house, numerology, or fatalistic/clinical terms.
-KNOWLEDGE GROUNDING RULE: Ground all behavioral insights, blind spots, relationship dynamics, and somatic reset tips in \`matchedKnowledgeContext\` and \`relationshipTelemetry\`. Synthesize them naturally into warm, everyday US mentor language—never copy rule strings verbatim and never leak any banned astrology, Sanskrit, or clinical terms.
+KNOWLEDGE GROUNDING RULE: Ground all behavioral insights, blind spots, relationship dynamics, and somatic reset tips in \`matchedKnowledgeContext\` (including \`relationship.compatibilityDimensions\` and \`wellness.quickMicroAnchor\`) and \`relationshipTelemetry\`. Synthesize them naturally into warm, everyday US mentor language—never copy rule strings verbatim and never leak any banned astrology, Sanskrit, or clinical terms.
 ${buildRelationshipPromptSection(FIRST_NAME_PLACEHOLDER, canonicalStatus)}`;
 
   const userPayload = {

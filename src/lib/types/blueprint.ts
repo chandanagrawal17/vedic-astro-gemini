@@ -66,7 +66,99 @@ export type FunnelEventName =
   | "paywall_cta_clicked"
   | "beta_unlocked"
   | "brag_card_shared"
-  | "birth_time_upgraded";
+  | "birth_time_upgraded"
+  | "daily_command_viewed"
+  | "daily_memory_tagged"
+  | "somatic_reset_completed"
+  | "text_or_wait_checked"
+  | "focus_calendar_audited";
+
+export type DailyToneStatus = "GREEN" | "YELLOW" | "RED";
+export type DailyMemoryTag =
+  | "hit_home"
+  | "helped_pause"
+  | "took_action"
+  | "felt_off";
+export type TextOrWaitIntent = "dating" | "work" | "conflict" | "money";
+export type CalendarDayMode = "PITCH" | "STEADY" | "FOCUS";
+export type MoveAuditAction = "pitch" | "hard_talk" | "deep_work" | "sign_deal" | "rest_reset";
+
+export interface DailyPeakFrictionWindow {
+  label: string;
+  note: string;
+}
+
+export interface DailyCalendarDay {
+  dateIso: string;
+  dayShort: string;
+  dayNumber: string;
+  mode: CalendarDayMode;
+  headline: string;
+  guidance: string;
+  bandwidthScore: number;
+  status: DailyToneStatus;
+}
+
+export interface DailySomaticPhase {
+  step: 1 | 2 | 3;
+  title: string;
+  instruction: string;
+}
+
+export interface DailyCommandCenterPayload {
+  checkinDate: string;
+  precisionMode: PrecisionMode;
+  precisionNote: string | null;
+  bandwidthScore: number;
+  toneStatus: DailyToneStatus;
+  toneLabel: string;
+  summary: string;
+  peakWindow: DailyPeakFrictionWindow;
+  frictionWindow: DailyPeakFrictionWindow;
+  dailyDirective: {
+    directiveId: string;
+    text: string;
+    antiRepetitionWindowDays: number;
+  };
+  memoryTags: DailyMemoryTag[];
+  somaticResetsCompletedToday: number;
+  somaticReset: {
+    durationSeconds: 90;
+    personalizedAnchor: string;
+    phases: [DailySomaticPhase, DailySomaticPhase, DailySomaticPhase];
+  };
+  defaultTextOrWait: {
+    intent: TextOrWaitIntent;
+    verdict: DailyToneStatus;
+    badge: string;
+    guidance: string;
+    speakableScript: string;
+  };
+  sevenDayCalendar: DailyCalendarDay[];
+}
+
+export interface TextOrWaitResult {
+  intent: TextOrWaitIntent;
+  verdict: DailyToneStatus;
+  badge: string;
+  guidance: string;
+  speakableScript: string;
+  waitMinutes: number;
+}
+
+export interface MoveAuditResult {
+  dateIso: string;
+  dayLabel: string;
+  action: MoveAuditAction;
+  verdict: DailyToneStatus;
+  headline: string;
+  guidance: string;
+  recommendedAlternativeDate: {
+    dateIso: string;
+    dayLabel: string;
+    mode: CalendarDayMode;
+  } | null;
+}
 
 export interface LocationOption {
   cityName: string;

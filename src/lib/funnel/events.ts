@@ -28,6 +28,11 @@ export const FUNNEL_EVENT_VALUES = [
   "beta_unlocked",
   "brag_card_shared",
   "birth_time_upgraded",
+  "daily_command_viewed",
+  "daily_memory_tagged",
+  "somatic_reset_completed",
+  "text_or_wait_checked",
+  "focus_calendar_audited",
 ] as const;
 
 export const EntryHookSchema = z.enum(ENTRY_HOOK_VALUES);

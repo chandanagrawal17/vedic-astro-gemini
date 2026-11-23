@@ -1,5 +1,6 @@
 import { createHash } from "crypto";
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { RULE_MATCHER_VERSION } from "@/lib/astro/ruleMatcher";
 import {
   AstroPrecisionMode,
   NormalizedChartJson,
@@ -123,7 +124,7 @@ export function computeBirthInputHash(input: {
   return createHash("sha256").update(canonical).digest("hex");
 }
 
-export const BLUEPRINT_ENGINE_VERSION = "v3_hr_career_rel_tiered";
+export const BLUEPRINT_ENGINE_VERSION = `v4_hr_career_rel_${RULE_MATCHER_VERSION}`;
 
 function normalizeStatusForHash(status: string): string {
   switch (status.trim().toLowerCase()) {

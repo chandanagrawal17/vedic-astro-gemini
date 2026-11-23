@@ -17,6 +17,7 @@ import { ObsidianCard } from "@/components/ui/ObsidianCard";
 import { SolarOrbHero } from "@/components/ui/SolarOrbHero";
 import { BragCardModal } from "@/components/blueprint/BragCardModal";
 import { CareerPaidSection } from "@/components/blueprint/CareerSections";
+import { DailyCommandCenter } from "@/components/blueprint/DailyCommandCenter";
 import { HardResetPaidSection } from "@/components/blueprint/HardResetSections";
 import { LifeChaptersArc } from "@/components/blueprint/LifeChaptersArc";
 import { RelationshipPaidSection } from "@/components/blueprint/RelationshipSections";
@@ -45,9 +46,10 @@ import {
 } from "@/lib/store/sessionStore";
 import { buildMockBlueprint, DEFAULT_ONBOARDING_INPUT } from "@/lib/mock/blueprintMock";
 
-type HubTab = "overview" | "eras" | "career" | "love" | "blind_spot";
+type HubTab = "today" | "overview" | "eras" | "career" | "love" | "blind_spot";
 
 const TABS: { id: HubTab; label: string; hookKey: HookKey }[] = [
+  { id: "today", label: "Today", hookKey: "hard_reset" },
   { id: "overview", label: "Overview", hookKey: "hard_reset" },
   { id: "eras", label: "Eras", hookKey: "eras" },
   { id: "career", label: "Career", hookKey: "career" },
@@ -110,7 +112,7 @@ function BlueprintHubContent() {
   const [session, setSession] = useState<BlueprintSession | null>(null);
   const [loading, setLoading] = useState(true);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<HubTab>("overview");
+  const [activeTab, setActiveTab] = useState<HubTab>("today");
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [noteInput, setNoteInput] = useState("");
   const [showTimeModal, setShowTimeModal] = useState(false);
@@ -552,6 +554,17 @@ function BlueprintHubContent() {
             );
           })}
         </div>
+
+        {/* TAB 0: TODAY (Daily Command Center & Decision Tools) */}
+        {activeTab === "today" && (
+          <div className="mt-5">
+            <DailyCommandCenter
+              chartId={session.chartId}
+              sessionToken={session.sessionToken ?? session.sessionId}
+              firstName={input.firstName}
+            />
+          </div>
+        )}
 
         {/* TAB 1: OVERVIEW (Full Tight Monthly Hard Reset Timeline) */}
         {activeTab === "overview" && (

@@ -26,6 +26,7 @@ import {
   RelationshipStatus,
   UnlockSource,
 } from "@/lib/types/blueprint";
+import { readCleanEnv } from "@/lib/env";
 import { normalizeEntryHook } from "@/lib/funnel/events";
 
 const UUID_REGEX =
@@ -136,7 +137,7 @@ export interface BlueprintApiResponse {
   createdAt: string;
 }
 
-function assertDbError(error: { code?: string; message?: string } | null) {
+export function assertDbError(error: { code?: string; message?: string } | null) {
   if (!error) return;
   if (
     error.code === "42P01" ||
@@ -158,7 +159,7 @@ function assertDbError(error: { code?: string; message?: string } | null) {
 
 export type SupabaseAdminLike = Pick<SupabaseClient, "from">;
 
-async function findNatalChart(
+export async function findNatalChart(
   chartIdOrToken: string,
   admin: SupabaseAdminLike = getSupabaseAdminClient()
 ): Promise<NatalChartDbRow | null> {
@@ -173,7 +174,7 @@ async function findNatalChart(
   return data ?? null;
 }
 
-function assertOwnership(
+export function assertOwnership(
   chart: NatalChartDbRow,
   userId?: string | null,
   sessionToken?: string | null,
@@ -269,7 +270,7 @@ function formatSanitizedResponse(params: {
   };
 }
 
-async function resolveProfileContext(
+export async function resolveProfileContext(
   chart: NatalChartDbRow,
   override?: Partial<{
     firstName: string;
@@ -330,6 +331,7 @@ export async function synthesizeAndPersistBlueprint(params: {
   entryHook?: EntryHook | string | null;
   utmSource?: string | null;
   intent?: string | null;
+  allowOwnedRefresh?: boolean;
   profileOverride?: Partial<{
     firstName: string;
     relationshipStatus: RelationshipStatus;
@@ -379,6 +381,7 @@ export async function synthesizeAndPersistBlueprint(params: {
   // Paid Account Privacy Guardrail: never overwrite or leak paid blueprint to unauthenticated callers
   if (
     existingBp?.is_paid === true &&
+    !params.allowOwnedRefresh &&
     !isVerifiedBetaRefresh &&
     !isAuthorizedForExistingRecord({
       chartUserId: chart.user_id,
@@ -562,6 +565,7 @@ export async function getBlueprintById(params: {
   userId?: string | null;
   userEmail?: string | null;
   sessionToken?: string | null;
+  llmProvider?: LlmProvider;
   admin?: SupabaseAdminLike;
 }): Promise<BlueprintApiResponse> {
   const admin = params.admin ?? getSupabaseAdminClient();
@@ -589,6 +593,33 @@ export async function getBlueprintById(params: {
   }
 
   const profile = await resolveProfileContext(chart, undefined, admin);
+  const expectedContextHash = computeContextHash(profile);
+  const hasLlmConfigured = Boolean(
+    params.llmProvider || readCleanEnv("GEMINI_API_KEY")
+  );
+
+  // If this cached blueprint was synthesized under an older prompt/rulebook version,
+  // transparently upgrade it in place (0 Astro API calls) while preserving payment/feedback state.
+  if (bp.context_hash !== expectedContextHash && hasLlmConfigured) {
+    try {
+      return await synthesizeAndPersistBlueprint({
+        chartId: chart.id,
+        sessionToken: chart.session_token,
+        email: chart.email ?? bp.email ?? null,
+        userId: params.userId,
+        userEmail: params.userEmail,
+        allowOwnedRefresh: true,
+        llmProvider: params.llmProvider,
+        admin,
+      });
+    } catch (err) {
+      console.warn(
+        "[getBlueprintById] Stale blueprint refresh failed; serving cached version:",
+        err instanceof Error ? err.message : err
+      );
+    }
+  }
+
   const inputSummary = buildInputSummary(chart, profile);
 
   return formatSanitizedResponse({

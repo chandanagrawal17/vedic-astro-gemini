@@ -3,17 +3,22 @@ import assert from "node:assert/strict";
 import type { AstroProvider } from "@/lib/astro/provider";
 import type { LlmProvider } from "@/lib/llm/provider";
 import {
+  BLUEPRINT_ENGINE_VERSION,
   computeBirthInputHash,
   computeContextHash,
   EXISTING_PAID_ACCOUNT_MESSAGE,
   ExistingPaidAccountError,
   normalizeEmail,
 } from "@/lib/cache/blueprintCache";
+import { RULE_MATCHER_VERSION } from "@/lib/astro/ruleMatcher";
 import {
   calculateAndPersistChart,
   claimSessionForUser,
 } from "@/lib/supabase/chartSession";
-import { synthesizeAndPersistBlueprint } from "@/lib/supabase/blueprintSession";
+import {
+  getBlueprintById,
+  synthesizeAndPersistBlueprint,
+} from "@/lib/supabase/blueprintSession";
 import { InMemorySupabaseAdmin } from "./helpers/mockSupabase";
 import {
   makeChartBundleResult,
@@ -380,4 +385,107 @@ test("Slice 3.5 4-Case Matrix: Case A (Full Cache Hit), Case B (Context Update),
     if (prevDevUnlock === undefined) delete process.env.DEV_UNLOCK_PREVIEW;
     else process.env.DEV_UNLOCK_PREVIEW = prevDevUnlock;
   }
+});
+
+test("Stale cached paid & unpaid profiles auto-upgrade in place on getBlueprintById and fall back safely on transient LLM failure", async () => {
+  assert.ok(BLUEPRINT_ENGINE_VERSION.includes(RULE_MATCHER_VERSION));
+
+  const db = new InMemorySupabaseAdmin();
+  const astroSpy = makeSpyAstroProvider();
+  const chartId = "55555555-5555-4555-8555-555555555555";
+  const sessionToken = "pb_stale_paid_1";
+  const chartBundle = makeChartBundleResult("exact");
+
+  db.tables.natal_charts.push({
+    id: chartId,
+    user_id: null,
+    session_token: sessionToken,
+    email: "legacy.paid@example.com",
+    birth_input_hash: "bh_1",
+    dob: "1989-09-17",
+    tob: "20:54",
+    birth_window: null,
+    precision_mode: "exact",
+    birth_city: "Chicago, IL",
+    lat: 41.8781,
+    lon: -87.6298,
+    tz: -6,
+    moon_boundary_flag: false,
+    first_name: "Chandan",
+    relationship_status: "single",
+    career_mode: "employed_hybrid",
+    career_field: "Tech/Software",
+    raw_astro_json: chartBundle.rawAstroJson,
+    normalized_chart_json: chartBundle.normalizedChartJson,
+  });
+
+  const oldPayload = makeCleanBlueprintPayload("single");
+  oldPayload.hook_proof_json.career.fitHeadline = "Legacy Cached Fit";
+
+  db.tables.blueprints.push({
+    id: "bp-stale-1",
+    chart_id: chartId,
+    user_id: null,
+    session_token: sessionToken,
+    email: "legacy.paid@example.com",
+    context_hash: "legacy_v3_context_hash",
+    hook_proof_json: oldPayload.hook_proof_json,
+    full_blueprint_json: oldPayload.full_blueprint_json,
+    accuracy_feedback: "scarily_accurate",
+    model_version: "gemini-3.8-flash",
+    is_paid: true,
+    unlock_tier: "one_time_19",
+    unlock_source: "beta_free",
+    unlocked_at: "2026-11-01T00:00:00.000Z",
+    entry_hook: "hard-reset",
+  });
+
+  // 1. Transient LLM failure falls back cleanly to cached row
+  const failingLlm: LlmProvider = {
+    providerName: "failing-llm",
+    modelName: "gemini-3.8-flash-test",
+    async generateStructuredJson() {
+      throw new Error("503 UNAVAILABLE");
+    },
+  };
+  const fallbackRes = await getBlueprintById({
+    chartIdOrToken: chartId,
+    sessionToken,
+    llmProvider: failingLlm,
+    admin: db.asAdminClient(),
+  });
+  assert.equal(fallbackRes.cached, true);
+  assert.equal(fallbackRes.hook_proof_json.career.fitHeadline, "Legacy Cached Fit");
+  assert.equal(fallbackRes.isPaid, true);
+
+  // 2. Working LLM auto-upgrades stale cached row in place (0 Astro calls, preserves payment & feedback)
+  const llmSpy = makeSpyLlmProvider();
+  const upgradedRes = await getBlueprintById({
+    chartIdOrToken: chartId,
+    sessionToken,
+    llmProvider: llmSpy.provider,
+    admin: db.asAdminClient(),
+  });
+  assert.equal(astroSpy.getFetchCount(), 0);
+  assert.equal(llmSpy.getCalls(), 1);
+  assert.equal(upgradedRes.cached, false);
+  assert.equal(upgradedRes.llmCallsMade, 1);
+  assert.equal(upgradedRes.hook_proof_json.career.fitHeadline, "Run 1 Alignment Fit");
+  assert.equal(upgradedRes.isPaid, true);
+  assert.equal(upgradedRes.isUnlocked, true);
+  assert.ok(upgradedRes.full_blueprint_json);
+  assert.equal(upgradedRes.unlockSource, "beta_free");
+  assert.equal(upgradedRes.accuracyFeedback, "scarily_accurate");
+  assert.equal(db.tables.blueprints[0].id, "bp-stale-1");
+
+  // 3. Subsequent read hits the upgraded context_hash with 0 LLM calls
+  const secondRead = await getBlueprintById({
+    chartIdOrToken: chartId,
+    sessionToken,
+    llmProvider: llmSpy.provider,
+    admin: db.asAdminClient(),
+  });
+  assert.equal(secondRead.cached, true);
+  assert.equal(secondRead.llmCallsMade, 0);
+  assert.equal(llmSpy.getCalls(), 1);
 });

@@ -68,13 +68,21 @@ class InMemoryQueryBuilder {
     return this;
   }
 
-  gte(col: string, val: number) {
-    this.filters.push((row) => Number(row[col]) >= val);
+  gte(col: string, val: number | string) {
+    if (typeof val === "string") {
+      this.filters.push((row) => String(row[col] ?? "") >= val);
+    } else {
+      this.filters.push((row) => Number(row[col]) >= val);
+    }
     return this;
   }
 
-  lte(col: string, val: number) {
-    this.filters.push((row) => Number(row[col]) <= val);
+  lte(col: string, val: number | string) {
+    if (typeof val === "string") {
+      this.filters.push((row) => String(row[col] ?? "") <= val);
+    } else {
+      this.filters.push((row) => Number(row[col]) <= val);
+    }
     return this;
   }
 
@@ -127,11 +135,15 @@ class InMemoryQueryBuilder {
     }
 
     if (this.mode === "upsert" && this.payload) {
-      const conflictKey = this.onConflictCol || "id";
-      const existingIdx = this.rows.findIndex(
-        (r) =>
-          this.payload![conflictKey] !== undefined &&
-          r[conflictKey] === this.payload![conflictKey]
+      const conflictCols = (this.onConflictCol || "id")
+        .split(",")
+        .map((s) => s.trim())
+        .filter(Boolean);
+      const existingIdx = this.rows.findIndex((r) =>
+        conflictCols.every(
+          (col) =>
+            this.payload![col] !== undefined && r[col] === this.payload![col]
+        )
       );
 
       let saved: Row;
@@ -225,6 +237,8 @@ export class InMemorySupabaseAdmin {
     blueprints: [],
     profiles: [],
     funnel_events: [],
+    daily_checkins: [],
+    decision_logs: [],
   };
 
   from(table: string) {
