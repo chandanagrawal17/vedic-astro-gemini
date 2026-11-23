@@ -55,10 +55,16 @@ test("synthesizeBlueprint auto-repairs banned jargon on 1 retry and throws if re
   assert.equal(repaired.repairedAfterAudit, true);
   assert.equal(repaired.llmCallsMade, 2);
   assert.equal(repaired.payload.hook_proof_json.upgrade_hint, null);
-  assert.equal(repaired.payload.hook_proof_json.relationship.branch, "partnered");
+  assert.equal(
+    repaired.payload.hook_proof_json.relationship.relationshipStatus,
+    "married"
+  );
 
   // Pass 1 poisoned -> Pass 2 still poisoned -> throws BlueprintGuardrailError
-  const failingStub = makeStubLlmProvider([poisoned, poisoned]);
+  const singlePoisoned = makeCleanBlueprintPayload("single");
+  singlePoisoned.hook_proof_json.hardReset.concreteRealLifeThemes[0] =
+    "Your Rahu Mahadasha in the 10th house forced a tough reset in Late Oct – Nov 2022.";
+  const failingStub = makeStubLlmProvider([singlePoisoned, singlePoisoned]);
   await assert.rejects(
     () =>
       synthesizeBlueprint(
@@ -79,9 +85,9 @@ test("synthesizeBlueprint auto-repairs banned jargon on 1 retry and throws if re
   );
 });
 
-test("synthesizeBlueprint enforces non-null upgrade_hint and solo branch in date_only + single mode", async () => {
+test("synthesizeBlueprint enforces non-null upgrade_hint and single branch in date_only + single mode", async () => {
   const chart = makeChartBundleResult("date_only").normalizedChartJson;
-  const clean = makeCleanBlueprintPayload();
+  const clean = makeCleanBlueprintPayload("single");
   clean.hook_proof_json.upgrade_hint = null; // simulate LLM forgetting hint
 
   const stub = makeStubLlmProvider([clean]);
@@ -98,7 +104,14 @@ test("synthesizeBlueprint enforces non-null upgrade_hint and solo branch in date
     stub.provider
   );
 
-  assert.equal(res.payload.hook_proof_json.relationship.branch, "solo");
+  assert.equal(
+    res.payload.hook_proof_json.relationship.relationshipStatus,
+    "single"
+  );
+  assert.equal(
+    res.payload.full_blueprint_json.relationship.relationshipStatus,
+    "single"
+  );
   assert.ok(
     typeof res.payload.hook_proof_json.upgrade_hint === "string" &&
       res.payload.hook_proof_json.upgrade_hint.length > 15

@@ -7,7 +7,7 @@ const ClaimSchema = z.object({
   sessionToken: z.string().trim().min(4).max(128).optional(),
   firstName: z.string().trim().min(1).max(80).optional(),
   relationshipStatus: z
-    .enum(["single", "relationship", "married", "shifting"])
+    .enum(["single", "dating", "relationship", "married", "shifting"])
     .optional(),
   careerMode: z
     .enum([

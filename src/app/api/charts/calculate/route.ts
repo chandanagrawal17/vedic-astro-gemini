@@ -34,7 +34,7 @@ const CalculateChartSchema = z.object({
     .optional()
     .default(null),
   relationshipStatus: z
-    .enum(["single", "relationship", "married", "shifting"])
+    .enum(["single", "dating", "relationship", "married", "shifting"])
     .optional()
     .default("single"),
   careerMode: z

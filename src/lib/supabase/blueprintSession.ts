@@ -1,4 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { normalizeRelationshipStatus } from "@/lib/astro/relationshipEngine";
 import { AstroPrecisionMode, NormalizedChartJson, toUiPrecisionMode } from "@/lib/astro/types";
 import {
   computeContextHash,
@@ -10,13 +11,17 @@ import {
 import { FullBlueprintPayload, HookProofPayload } from "@/lib/llm/blueprintSchema";
 import { BlueprintGuardrailError } from "@/lib/llm/guardrails";
 import { LlmProvider } from "@/lib/llm/provider";
-import { synthesizeBlueprint } from "@/lib/llm/synthesizeBlueprint";
+import {
+  synthesizeBlueprint,
+  synthesizeRelationshipOnly,
+} from "@/lib/llm/synthesizeBlueprint";
 import { getSupabaseAdminClient } from "@/lib/supabase/admin";
 import {
   BirthWindow,
   CareerMode,
   EntryHook,
   HardResetFeedback,
+  LoveAccuracyFeedback,
   OnboardingInput,
   RelationshipStatus,
   UnlockSource,
@@ -86,10 +91,12 @@ interface BlueprintDbRow {
   hook_proof_json: HookProofPayload;
   full_blueprint_json: FullBlueprintPayload;
   accuracy_feedback: HardResetFeedback | null;
+  love_accuracy_feedback?: LoveAccuracyFeedback | null;
   confirmed_flashpoint_ids?: string[] | null;
   saved_alternative_lanes?: string[] | null;
   hard_reset_engine_version?: string | null;
   career_hook_engine_version?: string | null;
+  relationship_hook_engine_version?: string | null;
   model_version: string | null;
   is_paid: boolean;
   unlock_tier: "one_time_19" | "annual_39" | null;
@@ -120,6 +127,7 @@ export interface BlueprintApiResponse {
   entryHook: EntryHook | null;
   utmSource: string | null;
   accuracyFeedback: HardResetFeedback | null;
+  loveAccuracyFeedback: LoveAccuracyFeedback | null;
   confirmedFlashpointIds: string[];
   savedAlternativeLanes: string[];
   hook_proof_json: HookProofPayload;
@@ -138,7 +146,7 @@ function assertDbError(error: { code?: string; message?: string } | null) {
     error.message?.includes("does not exist")
   ) {
     throw new BlueprintServiceError(
-      "Supabase schema out of date. Please run supabase/migrations/001_slice2_core.sql, 002_slice3_blueprints.sql, and 003_slice35_email_caching.sql in your Supabase SQL Editor.",
+      "Supabase schema out of date. Please run supabase/migrations/001–006 in your Supabase SQL Editor.",
       500
     );
   }
@@ -246,6 +254,7 @@ function formatSanitizedResponse(params: {
     entryHook: bp.entry_hook ?? null,
     utmSource: bp.utm_source ?? null,
     accuracyFeedback: bp.accuracy_feedback,
+    loveAccuracyFeedback: bp.love_accuracy_feedback ?? null,
     confirmedFlashpointIds: Array.isArray(bp.confirmed_flashpoint_ids)
       ? bp.confirmed_flashpoint_ids
       : [],
@@ -501,6 +510,7 @@ export async function synthesizeAndPersistBlueprint(params: {
         model_version: synthesized.modelVersion,
         hard_reset_engine_version: "v2_tiered_yearly_to_monthly",
         career_hook_engine_version: "v2_friendly_mentor_tiered",
+        relationship_hook_engine_version: "v2_lovable_single_branch",
         entry_hook: existingBp.entry_hook ?? resolvedEntryHook,
         utm_source: existingBp.utm_source ?? resolvedUtmSource,
       })
@@ -525,6 +535,7 @@ export async function synthesizeAndPersistBlueprint(params: {
           model_version: synthesized.modelVersion,
           hard_reset_engine_version: "v2_tiered_yearly_to_monthly",
           career_hook_engine_version: "v2_friendly_mentor_tiered",
+          relationship_hook_engine_version: "v2_lovable_single_branch",
           entry_hook: resolvedEntryHook ?? "direct",
           utm_source: resolvedUtmSource,
         },
@@ -592,6 +603,7 @@ export async function getBlueprintById(params: {
 export async function saveBlueprintFeedback(params: {
   chartIdOrToken: string;
   feedback?: HardResetFeedback;
+  loveFeedback?: LoveAccuracyFeedback;
   confirmedFlashpointIds?: string[];
   savedAlternativeLanes?: string[];
   userId?: string | null;
@@ -601,6 +613,7 @@ export async function saveBlueprintFeedback(params: {
 }): Promise<{
   ok: true;
   accuracyFeedback: HardResetFeedback | null;
+  loveAccuracyFeedback: LoveAccuracyFeedback | null;
   confirmedFlashpointIds: string[];
   savedAlternativeLanes: string[];
   chartId: string;
@@ -619,6 +632,9 @@ export async function saveBlueprintFeedback(params: {
   if (params.feedback !== undefined) {
     patch.accuracy_feedback = params.feedback;
   }
+  if (params.loveFeedback !== undefined) {
+    patch.love_accuracy_feedback = params.loveFeedback;
+  }
   if (params.confirmedFlashpointIds !== undefined) {
     patch.confirmed_flashpoint_ids = params.confirmedFlashpointIds;
   }
@@ -631,11 +647,12 @@ export async function saveBlueprintFeedback(params: {
     .update(patch)
     .eq("chart_id", chart.id)
     .select(
-      "chart_id, accuracy_feedback, confirmed_flashpoint_ids, saved_alternative_lanes, email, entry_hook"
+      "chart_id, accuracy_feedback, love_accuracy_feedback, confirmed_flashpoint_ids, saved_alternative_lanes, email, entry_hook"
     )
     .maybeSingle<{
       chart_id: string;
       accuracy_feedback: HardResetFeedback | null;
+      love_accuracy_feedback?: LoveAccuracyFeedback | null;
       confirmed_flashpoint_ids?: string[] | null;
       saved_alternative_lanes?: string[] | null;
       email: string | null;
@@ -651,6 +668,7 @@ export async function saveBlueprintFeedback(params: {
     ok: true,
     chartId: updated.chart_id,
     accuracyFeedback: updated.accuracy_feedback ?? null,
+    loveAccuracyFeedback: updated.love_accuracy_feedback ?? null,
     confirmedFlashpointIds: Array.isArray(updated.confirmed_flashpoint_ids)
       ? updated.confirmed_flashpoint_ids
       : [],
@@ -660,4 +678,162 @@ export async function saveBlueprintFeedback(params: {
     email: updated.email ?? chart.email ?? null,
     entryHook: updated.entry_hook ?? null,
   };
+}
+
+function isV2RelationshipStored(bp: BlueprintDbRow): boolean {
+  const freeRel = bp.hook_proof_json?.relationship as unknown as
+    | Record<string, unknown>
+    | undefined;
+  const paidRel = bp.full_blueprint_json?.relationship as unknown as
+    | Record<string, unknown>
+    | undefined;
+  return Boolean(
+    freeRel &&
+      typeof freeRel.lovableContradictionHeadline === "string" &&
+      paidRel &&
+      typeof paidRel.relationshipStatus === "string" &&
+      "next12Months" in paidRel
+  );
+}
+
+/**
+ * Updates relationship_status on natal_charts (+ profiles if signed in) and re-synthesizes
+ * ONLY Hook #2 (`relationship`), preserving Hard Reset, Career, Eras, Self-Sabotage, and payment state.
+ */
+export async function updateRelationshipStatusAndResynthesize(params: {
+  chartIdOrToken: string;
+  relationshipStatus: RelationshipStatus;
+  userId?: string | null;
+  userEmail?: string | null;
+  sessionToken?: string | null;
+  llmProvider?: LlmProvider;
+  admin?: SupabaseAdminLike;
+}): Promise<BlueprintApiResponse> {
+  const admin = params.admin ?? getSupabaseAdminClient();
+  const chart = await findNatalChart(params.chartIdOrToken, admin);
+  if (!chart) {
+    throw new BlueprintServiceError("Blueprint chart not found.", 404);
+  }
+
+  assertOwnership(chart, params.userId, params.sessionToken, params.userEmail);
+
+  const { data: existingBp, error: bpErr } = await admin
+    .from("blueprints")
+    .select("*")
+    .eq("chart_id", chart.id)
+    .not("model_version", "is", null)
+    .maybeSingle<BlueprintDbRow>();
+
+  if (bpErr) assertDbError(bpErr);
+  if (!existingBp) {
+    throw new BlueprintServiceError(
+      "Blueprint has not been synthesized yet.",
+      404
+    );
+  }
+
+  const canonicalStatus = normalizeRelationshipStatus(params.relationshipStatus);
+  const existingProfile = await resolveProfileContext(chart, undefined, admin);
+  const previousCanonical = normalizeRelationshipStatus(
+    existingProfile.relationshipStatus
+  );
+
+  const updatedProfile = {
+    ...existingProfile,
+    relationshipStatus: canonicalStatus,
+  };
+  const updatedContextHash = computeContextHash(updatedProfile);
+  const inputSummary = buildInputSummary(
+    { ...chart, relationship_status: canonicalStatus },
+    updatedProfile
+  );
+
+  const storedStatus = (
+    existingBp.hook_proof_json?.relationship as unknown as
+      | { relationshipStatus?: string }
+      | undefined
+  )?.relationshipStatus;
+
+  if (
+    storedStatus === canonicalStatus &&
+    isV2RelationshipStored(existingBp) &&
+    existingBp.relationship_hook_engine_version === "v2_lovable_single_branch"
+  ) {
+    return formatSanitizedResponse({
+      bp: existingBp,
+      chart: { ...chart, relationship_status: canonicalStatus },
+      input: inputSummary,
+      cached: true,
+      llmCallsMade: 0,
+    });
+  }
+
+  let relResult;
+  try {
+    relResult = await synthesizeRelationshipOnly(
+      {
+        normalizedChart: chart.normalized_chart_json,
+        firstName: existingProfile.firstName,
+        relationshipStatus: canonicalStatus,
+      },
+      params.llmProvider
+    );
+  } catch (err) {
+    if (err instanceof BlueprintGuardrailError) {
+      throw new BlueprintServiceError(
+        "Relationship Mirror synthesis did not pass quality guardrails. Please try again.",
+        422,
+        { flaggedTerms: err.flaggedTerms }
+      );
+    }
+    throw err;
+  }
+
+  const { error: chartPatchErr } = await admin
+    .from("natal_charts")
+    .update({ relationship_status: canonicalStatus })
+    .eq("id", chart.id);
+  if (chartPatchErr) assertDbError(chartPatchErr);
+
+  if (chart.user_id) {
+    await admin
+      .from("profiles")
+      .update({ relationship_status: canonicalStatus })
+      .eq("user_id", chart.user_id);
+  }
+
+  const nextFreePayload: HookProofPayload = {
+    ...existingBp.hook_proof_json,
+    relationship: relResult.hookProofRelationship,
+  };
+  const nextPaidPayload: FullBlueprintPayload = {
+    ...existingBp.full_blueprint_json,
+    relationship: relResult.fullBlueprintRelationship,
+  };
+
+  const { data: updatedBp, error: updateBpErr } = await admin
+    .from("blueprints")
+    .update({
+      context_hash: updatedContextHash,
+      hook_proof_json: nextFreePayload,
+      full_blueprint_json: nextPaidPayload,
+      relationship_hook_engine_version: "v2_lovable_single_branch",
+      love_accuracy_feedback:
+        previousCanonical !== canonicalStatus
+          ? null
+          : existingBp.love_accuracy_feedback ?? null,
+    })
+    .eq("id", existingBp.id)
+    .select("*")
+    .single<BlueprintDbRow>();
+
+  if (updateBpErr) assertDbError(updateBpErr);
+
+  return formatSanitizedResponse({
+    bp: updatedBp!,
+    chart: { ...chart, relationship_status: canonicalStatus },
+    input: inputSummary,
+    cached: false,
+    llmCallsMade: relResult.llmCallsMade,
+  });
 }

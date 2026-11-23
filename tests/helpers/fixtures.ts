@@ -314,7 +314,225 @@ export function makeChandanExactChart(): ChartBundleResult {
   };
 }
 
-export function makeCleanBlueprintPayload(): SynthesizedBlueprintPayload {
+export function makeCleanBlueprintPayload(
+  status: "single" | "dating" | "married" = "married"
+): SynthesizedBlueprintPayload {
+  const freeRelationship: SynthesizedBlueprintPayload["hook_proof_json"]["relationship"] =
+    status === "single"
+      ? {
+          relationshipStatus: "single",
+          lovableContradictionHeadline:
+            "A Soft-Hearted Romantic Wearing an 'I'm Totally Fine Alone' Jacket",
+          caughtRedHandedTell:
+            "You stay warm and engaged across the table while running a quiet 10-point consistency check inside—and the moment respect drops, you turn super polite and silently exit.",
+          somaticBodyTell:
+            "When you can't tell where you stand with someone, your shoulders tighten, sleep gets weirdly light, and you organize or work late just to feel back in control.",
+          pastLoveShift: {
+            yearRange: "2022 – 2023",
+            whatShifted:
+              "Going through the motions in half-clear connections stopped working—quietly rewiring your standards around genuine effort.",
+            accuracyPrompt:
+              "Be honest—did something quietly rewire how you do love around 2022 – 2023?",
+          },
+          halfUnlockedCliffhanger: {
+            unlockedHalf:
+              "You're magnetized toward confident, sharp people with good taste and lively presence.",
+            lockedHalfTeaser:
+              "Unlock the 1 quiet trait you keep overlooking that actually brings peace past Month 3.",
+          },
+          lockedTimingYearLabel: "2026 – 2027",
+        }
+      : status === "dating"
+        ? {
+            relationshipStatus: "dating",
+            lovableContradictionHeadline:
+              "Warm & All-In Across the Table, Quietly Auditing Effort Inside",
+            caughtRedHandedTell:
+              "You don't play waiting games—your replies are direct and warm when interested, yet one vague weekend makes you quietly step back without making a scene.",
+            somaticBodyTell:
+              "When communication feels unclear, your shoulders tighten, sleep turns light, and you dive into late-night organizing or work.",
+            pastLoveShift: {
+              yearRange: "2022 – 2023",
+              whatShifted:
+                "Half-baked consistency stopped cutting it—forcing blunt clarity on what real mutual effort actually looks like.",
+              accuracyPrompt:
+                "Be honest—did something quietly rewire how you do love around 2022 – 2023?",
+            },
+            halfUnlockedCliffhanger: {
+              unlockedHalf:
+                "You click fastest with sharp banter, honest warmth, and people who follow through without reminders.",
+              lockedHalfTeaser:
+                "Unlock the 1 early-dating friction loop + the 10-second shift that cools tension.",
+            },
+            lockedTimingYearLabel: "2026 – 2027",
+          }
+        : {
+            relationshipStatus: "married",
+            lovableContradictionHeadline:
+              "A Fiercely Loyal Partner Wearing a 'Let Me Handle Everything' Armor",
+            caughtRedHandedTell:
+              "You show love by quietly handling practical details and holding the roof up—then feel quietly drained if tough nights turn into a fix-it talk instead of warmth.",
+            somaticBodyTell:
+              "When unspoken tension builds, your shoulders tighten, sleep gets light, and you handle tasks late at night to reset.",
+            pastLoveShift: {
+              yearRange: "2022 – 2023",
+              whatShifted:
+                "Polite autopilot stopped working inside your closest bond—pushing honest conversations and clearer home boundaries.",
+              accuracyPrompt:
+                "Be honest—did something quietly rewire how you do love around 2022 – 2023?",
+            },
+            halfUnlockedCliffhanger: {
+              unlockedHalf:
+                "You thrive when your home feels like a sharp two-person team built on humor and follow-through.",
+              lockedHalfTeaser:
+                "Unlock the 1 silent marriage stress loop + the 10-second shift that softens tough nights.",
+            },
+            lockedTimingYearLabel: "2026 – 2027",
+          };
+
+  const paidRelationship: SynthesizedBlueprintPayload["full_blueprint_json"]["relationship"] =
+    status === "single"
+      ? {
+          relationshipStatus: "single",
+          sparkVsPeace: {
+            whoCatchesYourEye:
+              "Confident, sharp people with good taste and lively presence who hold their own effortlessly.",
+            whereTheGapHides:
+              "High initial spark fades fast if someone can't match steady follow-through on ordinary weekdays.",
+            whatToStopExcusing:
+              "Hot-and-cold ambiguity that triggers quiet overthinking.",
+          },
+          singleBlindSpot: {
+            loopName: "Fast-Forward Auditing",
+            howItPlaysOut:
+              "You jump ahead mentally after one great date or rule someone out too quickly on a tiny flaw.",
+            gentleMentorReset:
+              "Treat the first three dates as relaxed curiosity rather than a lifelong verdict.",
+          },
+          greenFlagBodyCheck:
+            "With the right person, your shoulders drop, laughter feels easy, and you stop rechecking your phone.",
+          next12Months: {
+            bigPictureSummary:
+              "Quality over app volume—real-life settings and warm intros beat swiping this year.",
+            tightMonthlyWindows: [
+              {
+                id: "rw_01",
+                monthRange: "Dec 2026 – Jan 2027",
+                windowTitle: "Warm Introductions & Natural Spark",
+                practicalGuidance:
+                  "Say yes to dinners through trusted friends where conversation flows naturally face-to-face.",
+              },
+              {
+                id: "rw_02",
+                monthRange: "Mar – May 2027",
+                windowTitle: "Skip Rebounds & Dating Fatigue",
+                practicalGuidance:
+                  "Your inner critic runs sharper when busy—take a breather rather than forcing lukewarm first dates.",
+              },
+              {
+                id: "rw_03",
+                monthRange: "June – Aug 2027",
+                windowTitle: "Grounded Long-Term Readiness",
+                practicalGuidance:
+                  "Casual ambiguity loses appeal while steady, genuine connections stand out clearly.",
+              },
+            ],
+          },
+        }
+      : status === "dating"
+        ? {
+            relationshipStatus: "dating",
+            realAlignmentCheck: {
+              sparkVsPace:
+                "Chemistry flows easily for you, yet lasting peace shows up on calm weekdays rather than dramatic nights.",
+              threeAlignmentSigns: [
+                "Actions match words consistently without gentle reminders.",
+                "Silence between replies feels relaxed rather than tense.",
+                "Small misunderstandings turn into calm talks instead of pulling back.",
+              ],
+            },
+            earlyDatingFriction: {
+              loopName: "The Fix-vs-Pause Loop",
+              howItShowsUp:
+                "When tension pops up early, you either jump straight into fixing it or turn politely quiet.",
+              tenSecondShift:
+                "Pause 10 seconds and ask plainly how their week feels before reading tone into a short text.",
+            },
+            pacingAndBoundariesTip:
+              "Let steady week-by-week consistency over two months earn trust instead of rushing emotional clarity.",
+            next12Months: {
+              bigPictureSummary:
+                "Steady real-life presence beats late-night texting marathons over the next 12 months.",
+              tightMonthlyWindows: [
+                {
+                  id: "rw_01",
+                  monthRange: "Dec 2026 – Jan 2027",
+                  windowTitle: "Warmth & Easy Momentum",
+                  practicalGuidance:
+                    "Prioritize unhurried dinners and relaxed weekend plans while conversation flows easily.",
+                },
+                {
+                  id: "rw_02",
+                  monthRange: "Mar – May 2027",
+                  windowTitle: "Patience Watch Between Texts",
+                  practicalGuidance:
+                    "Skip auditing brief replies on busy workdays—protect calm evenings before heavy talks.",
+                },
+                {
+                  id: "rw_03",
+                  monthRange: "June – Aug 2027",
+                  windowTitle: "Clear Staying-Power Shift",
+                  practicalGuidance:
+                    "Long-term alignment clicks sharply into focus as surface distractions fall away.",
+                },
+              ],
+            },
+          }
+        : {
+            relationshipStatus: "married",
+            marriageBlueprint: {
+              whereYouTrulyClick:
+                "You bond deeply through reliability, shared humor, and tackling practical life as true teammates.",
+              silentFrictionPoint:
+                "When overloaded, you turn hyper-independent and solve tension silently, which can feel like distance.",
+              leavingOutsideStressAtDoor:
+                "Unfinished work pressure sneaks into dinner unless you take 20 quiet minutes to decompress first.",
+            },
+            tenSecondShift: {
+              exactPhraseToTry:
+                "\"My head is still buzzing from work—give me 20 minutes to reset so I can really be with you.\"",
+              whyItSoftensTheRoom:
+                "Naming your bandwidth out loud removes guesswork and turns quiet evenings warm again.",
+            },
+            next12Months: {
+              bigPictureSummary:
+                "Small protected home rituals outperform big debates across the next 12 months together.",
+              tightMonthlyWindows: [
+                {
+                  id: "rw_01",
+                  monthRange: "Dec 2026 – Jan 2027",
+                  windowTitle: "Warmth & Shared Ease",
+                  practicalGuidance:
+                    "Book an unhurried dinner or short trip while lightness and easy humor flow naturally.",
+                },
+                {
+                  id: "rw_02",
+                  monthRange: "Mar – May 2027",
+                  windowTitle: "Patience Watch on Tired Nights",
+                  practicalGuidance:
+                    "Pause 10 seconds before reacting when busy schedules leave both of you stretched thin.",
+                },
+                {
+                  id: "rw_03",
+                  monthRange: "June – Aug 2027",
+                  windowTitle: "Grounded Home Routine Reset",
+                  practicalGuidance:
+                    "Lock in one simple weekly check-in ritual that keeps teamwork smooth and calm.",
+                },
+              ],
+            },
+          };
+
   return {
     hook_proof_json: {
       hardReset: {
@@ -349,11 +567,7 @@ export function makeCleanBlueprintPayload(): SynthesizedBlueprintPayload {
             "Unlock your tight monthly flashpoints and exact upcoming prep months inside the Full Blueprint.",
         },
       },
-      relationship: {
-        branch: "partnered",
-        archetype: "Fiercely Devoted, Guarded Under Fatigue",
-        teaserBadge: "1 Core Partner Friction Trigger Detected",
-      },
+      relationship: freeRelationship,
       career: {
         currentPathFitScore: 63,
         fitHeadline: "Great at the job, hungry for something deeper",
@@ -470,17 +684,7 @@ export function makeCleanBlueprintPayload(): SynthesizedBlueprintPayload {
           ],
         },
       },
-      relationship: {
-        coreAlignmentProfile:
-          "You bond through reliability, clear expectations, and practical follow-through rather than noisy gestures.",
-        silentFrictionPattern:
-          "When overloaded, you turn hyper-independent and solve tension alone, which a partner can misread as emotional distance.",
-        communicationShifts: [
-          "State your recovery window explicitly before going quiet after a demanding day.",
-          "Separate logistical planning from emotional check-ins each week.",
-        ],
-        clarityWindow: "Next 6 Months · Grounded Partnership Alignment",
-      },
+      relationship: paidRelationship,
       career: {
         pathComparison: [
           {

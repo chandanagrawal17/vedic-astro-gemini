@@ -196,9 +196,11 @@ test("synthesizeBlueprint strips real firstName and email from Gemini payload an
     async generateStructuredJson(sys, user, schema) {
       capturedSys = sys;
       capturedUserPayload = JSON.stringify(user);
-      const draft = makeCleanBlueprintPayload();
+      const draft = makeCleanBlueprintPayload("married");
       draft.hook_proof_json.hardReset.introHook = `${FIRST_NAME_PLACEHOLDER}, your 2022–2023 stretch forced a sharp identity reset and rebuilt your standards from scratch.`;
-      draft.full_blueprint_json.relationship.coreAlignmentProfile = `${FIRST_NAME_PLACEHOLDER}, you bond through quiet reliability and honest communication.`;
+      if (draft.full_blueprint_json.relationship.relationshipStatus === "married") {
+        draft.full_blueprint_json.relationship.marriageBlueprint.whereYouTrulyClick = `${FIRST_NAME_PLACEHOLDER}, you bond deeply through quiet reliability and honest communication.`;
+      }
       return schema.parse(draft);
     },
   };
@@ -225,11 +227,20 @@ test("synthesizeBlueprint strips real firstName and email from Gemini payload an
   assert.ok(
     result.payload.hook_proof_json.hardReset.introHook.startsWith("Chandan,")
   );
-  assert.ok(
-    result.payload.full_blueprint_json.relationship.coreAlignmentProfile.startsWith(
-      "Chandan,"
-    )
+  assert.equal(
+    result.payload.full_blueprint_json.relationship.relationshipStatus,
+    "married"
   );
+  if (
+    result.payload.full_blueprint_json.relationship.relationshipStatus ===
+    "married"
+  ) {
+    assert.ok(
+      result.payload.full_blueprint_json.relationship.marriageBlueprint.whereYouTrulyClick.startsWith(
+        "Chandan,"
+      )
+    );
+  }
   assert.equal(
     JSON.stringify(result.payload).includes(FIRST_NAME_PLACEHOLDER),
     false
@@ -277,7 +288,7 @@ test("Beta unlocked user can add exact birth time in-place while preserving is_p
     providerName: "stub",
     modelName: "gemini-3.8-flash-test",
     async generateStructuredJson(_sys, _user, schema) {
-      return schema.parse(makeCleanBlueprintPayload());
+      return schema.parse(makeCleanBlueprintPayload("single"));
     },
   };
 

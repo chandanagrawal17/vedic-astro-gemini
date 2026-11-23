@@ -5,7 +5,6 @@ import { useParams, useRouter, useSearchParams } from "next/navigation";
 import {
   ArrowLeft,
   ArrowRight,
-  Lock,
   RotateCcw,
   Share2,
   Sparkles,
@@ -17,15 +16,19 @@ import { CareerFreeSection } from "@/components/blueprint/CareerSections";
 import { HardResetFreeSection } from "@/components/blueprint/HardResetSections";
 import { LifeChaptersArc } from "@/components/blueprint/LifeChaptersArc";
 import { LockedInsightCard } from "@/components/blueprint/LockedInsightCard";
+import { RelationshipFreeSection } from "@/components/blueprint/RelationshipSections";
 import { SoftAuthModal } from "@/components/blueprint/SoftAuthModal";
 import { normalizeFreePayloadForUi } from "@/lib/blueprint/normalizePayload";
+import { buildMockBlueprint, DEFAULT_ONBOARDING_INPUT } from "@/lib/mock/blueprintMock";
 import { trackFunnelEvent } from "@/lib/store/attributionStore";
 import {
   BlueprintFreePayload,
   BlueprintPaidPayload,
   BlueprintSession,
+  CanonicalRelationshipStatus,
   EntryHook,
   HardResetFeedback,
+  LoveAccuracyFeedback,
   OnboardingInput,
   UnlockSource,
 } from "@/lib/types/blueprint";
@@ -34,8 +37,8 @@ import {
   loadStoredSession,
   saveSynthesizedSession,
   updateSessionFeedback,
+  updateSessionLoveFeedback,
 } from "@/lib/store/sessionStore";
-import { DEFAULT_ONBOARDING_INPUT } from "@/lib/mock/blueprintMock";
 
 interface BlueprintApiResponse {
   chartId: string;
@@ -50,6 +53,7 @@ interface BlueprintApiResponse {
   entryHook?: EntryHook | null;
   utmSource?: string | null;
   accuracyFeedback?: HardResetFeedback | null;
+  loveAccuracyFeedback?: LoveAccuracyFeedback | null;
   hook_proof_json: BlueprintFreePayload;
   full_blueprint_json: BlueprintPaidPayload | null;
   input?: OnboardingInput;
@@ -99,6 +103,9 @@ export default function PreviewSessionPage() {
   const [retrying, setRetrying] = useState(false);
   const [authModalOpen, setAuthModalOpen] = useState(false);
   const [bragModalOpen, setBragModalOpen] = useState(false);
+  const [showStatusGate, setShowStatusGate] = useState(false);
+  const [switchingStatus, setSwitchingStatus] = useState(false);
+  const [statusSwitchError, setStatusSwitchError] = useState<string | null>(null);
 
   const stepParam = searchParams.get("step");
   const activeStep: 1 | 2 = stepParam === "2" ? 2 : 1;
@@ -152,6 +159,7 @@ export default function PreviewSessionPage() {
               utmSource: synthData.utmSource,
               moonBoundaryFlag: synthData.moonBoundaryFlag,
               hardResetFeedback: synthData.accuracyFeedback,
+              loveAccuracyFeedback: synthData.loveAccuracyFeedback,
               modelVersion: synthData.modelVersion,
             }
           );
@@ -184,6 +192,7 @@ export default function PreviewSessionPage() {
               utmSource: data.utmSource,
               moonBoundaryFlag: data.moonBoundaryFlag,
               hardResetFeedback: data.accuracyFeedback,
+              loveAccuracyFeedback: data.loveAccuracyFeedback,
               modelVersion: data.modelVersion,
             }
           );
@@ -311,6 +320,17 @@ export default function PreviewSessionPage() {
     setAuthModalOpen(true);
   };
 
+  const handleLockedRelationshipClick = () => {
+    trackFunnelEvent({
+      eventName: "clicked_locked_relationship_guide",
+      chartId: session.chartId,
+      sessionToken: session.sessionToken ?? session.sessionId,
+      email: session.input.email,
+      entryHook: session.entryHook ?? session.input.entryHook ?? null,
+    });
+    setAuthModalOpen(true);
+  };
+
   const handleFeedback = (val: HardResetFeedback) => {
     const updated = updateSessionFeedback(val);
     setSession(updated);
@@ -326,6 +346,104 @@ export default function PreviewSessionPage() {
       }).catch(() => {
         // Non-blocking background persistence
       });
+    }
+  };
+
+  const handleLoveFeedback = (val: LoveAccuracyFeedback) => {
+    const updated = updateSessionLoveFeedback(val);
+    setSession(updated);
+    const targetId = session.chartId ?? session.sessionId;
+    if (targetId && targetId !== "demo-session") {
+      fetch(`/api/blueprint/${encodeURIComponent(targetId)}/feedback`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          loveFeedback: val,
+          sessionToken: session.sessionToken ?? session.sessionId,
+        }),
+      }).catch(() => {
+        // Non-blocking background persistence
+      });
+    }
+  };
+
+  const handleChangeRelationshipStatus = async (
+    nextStatus: CanonicalRelationshipStatus
+  ) => {
+    setStatusSwitchError(null);
+    const targetId = session.chartId ?? session.sessionId;
+    if (!targetId || targetId === "demo-session") {
+      const nextInput = { ...session.input, relationshipStatus: nextStatus };
+      const rebuilt = buildMockBlueprint(nextInput, session.sessionId);
+      const saved = saveSynthesizedSession(nextInput, {
+        chartId: session.chartId,
+        sessionId: session.sessionId,
+        sessionToken: session.sessionToken ?? session.sessionId,
+        freePayload: {
+          ...freePayload,
+          relationship: rebuilt.freePayload.relationship,
+        },
+        paidPayload: session.paidPayload
+          ? {
+              ...session.paidPayload,
+              relationship: rebuilt.paidPayload.relationship,
+            }
+          : null,
+        loveAccuracyFeedback: null,
+      });
+      setSession(saved);
+      setShowStatusGate(false);
+      return;
+    }
+
+    setSwitchingStatus(true);
+    try {
+      const res = await fetch(
+        `/api/blueprint/${encodeURIComponent(targetId)}/relationship-status`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            relationshipStatus: nextStatus,
+            sessionToken: session.sessionToken ?? session.sessionId,
+          }),
+        }
+      );
+      const data = (await res.json()) as BlueprintApiResponse;
+      if (!res.ok) {
+        throw new Error(data.error || "Unable to update relationship status.");
+      }
+
+      const hydrated = saveSynthesizedSession(
+        data.input ?? { ...session.input, relationshipStatus: nextStatus },
+        {
+          chartId: data.chartId,
+          sessionId: data.sessionId,
+          sessionToken: data.sessionToken,
+          freePayload: data.hook_proof_json,
+          paidPayload: data.full_blueprint_json,
+          isUnlocked: data.isUnlocked,
+          unlockTier: data.unlockTier,
+          unlockSource: data.unlockSource,
+          unlockedAt: data.unlockedAt,
+          entryHook: data.entryHook,
+          utmSource: data.utmSource,
+          moonBoundaryFlag: data.moonBoundaryFlag,
+          hardResetFeedback: data.accuracyFeedback,
+          loveAccuracyFeedback: data.loveAccuracyFeedback,
+          modelVersion: data.modelVersion,
+        }
+      );
+      setSession(hydrated);
+      setShowStatusGate(false);
+    } catch (err) {
+      setStatusSwitchError(
+        err instanceof Error
+          ? err.message
+          : "Unable to switch status right now."
+      );
+    } finally {
+      setSwitchingStatus(false);
     }
   };
 
@@ -444,30 +562,27 @@ export default function PreviewSessionPage() {
               onLockedCareerClick={handleLockedCareerClick}
             />
 
-            {/* Card 3: Relationship Mirror */}
-            <ObsidianCard>
-              <span className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[#F5A65B]">
-                Relationship Mirror ·{" "}
-                {freePayload.relationship.branch === "partnered"
-                  ? "Partnership"
-                  : "Solo & Dating"}
-              </span>
-
-              <h3 className="mt-1.5 font-serif text-[24px] leading-[1.2] text-[#FDF6EE]">
-                &ldquo;{freePayload.relationship.archetype}&rdquo;
-              </h3>
-
-              <div className="mt-3 inline-flex items-center gap-1.5 rounded-full border border-[#F5A65B]/25 bg-[#120C09] px-3 py-1 text-[11px] font-medium text-[#F5A65B]">
-                <Lock className="h-3 w-3" />
-                <span>{freePayload.relationship.teaserBadge}</span>
-              </div>
-
-              <LockedInsightCard
-                eyebrow="Relational Deep Dive"
-                headline="Silent Friction Pattern, 2 Communication Shifts & Timing"
-                onUnlockClick={() => setAuthModalOpen(true)}
-              />
-            </ObsidianCard>
+            {/* Card 3: Relationship Mirror (Single-Branch Lovable Proof + 1-Tap Accuracy) */}
+            <RelationshipFreeSection
+              relationship={freePayload.relationship}
+              loveAccuracyFeedback={session.loveAccuracyFeedback ?? null}
+              showStatusGate={showStatusGate || !session.input.relationshipStatus}
+              switchingStatus={switchingStatus}
+              statusSwitchError={statusSwitchError}
+              onSelectStatus={(nextStatus) =>
+                void handleChangeRelationshipStatus(nextStatus)
+              }
+              onOpenStatusGate={() => {
+                setStatusSwitchError(null);
+                setShowStatusGate(true);
+              }}
+              onCloseStatusGate={() => {
+                setStatusSwitchError(null);
+                setShowStatusGate(false);
+              }}
+              onSelectLoveFeedback={handleLoveFeedback}
+              onLockedRelationshipClick={handleLockedRelationshipClick}
+            />
           </div>
         )}
       </div>

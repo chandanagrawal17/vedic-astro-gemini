@@ -228,21 +228,131 @@ export const CareerDeepDiveSchema = z.object({
 });
 
 // ============================================================================
+// HOOK #2: CONDITIONAL RELATIONSHIP MIRROR (SINGLE-BRANCH, YEARLY FREE -> MONTHLY PAID)
+// ============================================================================
+export const RelationshipProofSchema = z.object({
+  relationshipStatus: z.enum(["single", "dating", "married"]),
+  lovableContradictionHeadline: z
+    .string()
+    .min(18)
+    .max(95)
+    .describe("Warm, playful contradiction headline contrasting outer armor vs. inner heart."),
+  caughtRedHandedTell: z
+    .string()
+    .min(55)
+    .max(260)
+    .describe("Hyper-specific texting, date-night, or everyday interaction habit that makes them laugh and feel seen."),
+  somaticBodyTell: z
+    .string()
+    .min(45)
+    .max(240)
+    .describe("Concrete physical/nervous-system tell when emotional uncertainty or tension hits."),
+  pastLoveShift: z.object({
+    yearRange: z
+      .string()
+      .regex(/^\d{4}(\s?[–-]\s?\d{4})?$/, "Yearly range only (e.g. '2022 – 2023'). NEVER include month names."),
+    whatShifted: z
+      .string()
+      .min(50)
+      .max(240)
+      .describe("Warm, relatable reflection on how their standards or love life shifted in that yearly stretch."),
+    accuracyPrompt: z.string().min(12).max(115),
+  }),
+  halfUnlockedCliffhanger: z.object({
+    unlockedHalf: z
+      .string()
+      .min(35)
+      .max(190)
+      .describe("Give away who sparks their interest or what makes them click to prove accuracy."),
+    lockedHalfTeaser: z
+      .string()
+      .min(30)
+      .max(160)
+      .describe("Curiosity gap teasing the exact trait/loop unlocked in the $19 guide."),
+  }),
+  lockedTimingYearLabel: z
+    .string()
+    .regex(/^\d{4}(\s?[–-]\s?\d{4})?$/, "Year or year-span only. NEVER include month names."),
+});
+
+export const ForwardLoveWindowSchema = z.object({
+  id: z.string().min(1),
+  monthRange: z
+    .string()
+    .min(5)
+    .max(40)
+    .describe("Exact 1-to-3-month range copied verbatim from relationshipTelemetry.paidLayerSignals.forward12mTiming."),
+  windowTitle: z.string().min(5).max(55),
+  practicalGuidance: z.string().min(55).max(270),
+});
+
+export const SharedPaidRelationshipTimingSchema = z.object({
+  bigPictureSummary: z.string().min(50).max(260),
+  tightMonthlyWindows: z.array(ForwardLoveWindowSchema).min(2).max(4),
+});
+
+export const SinglePaidRelationshipSchema = z.object({
+  relationshipStatus: z.literal("single"),
+  sparkVsPeace: z.object({
+    whoCatchesYourEye: z.string().min(45).max(230),
+    whereTheGapHides: z.string().min(55).max(260),
+    whatToStopExcusing: z.string().min(40).max(210),
+  }),
+  singleBlindSpot: z.object({
+    loopName: z.string().min(5).max(60),
+    howItPlaysOut: z.string().min(60).max(280),
+    gentleMentorReset: z.string().min(50).max(250),
+  }),
+  greenFlagBodyCheck: z.string().min(50).max(240),
+  next12Months: SharedPaidRelationshipTimingSchema,
+});
+
+export const DatingPaidRelationshipSchema = z.object({
+  relationshipStatus: z.literal("dating"),
+  realAlignmentCheck: z.object({
+    sparkVsPace: z.string().min(55).max(260),
+    threeAlignmentSigns: z.array(z.string().min(25).max(160)).length(3),
+  }),
+  earlyDatingFriction: z.object({
+    loopName: z.string().min(5).max(60),
+    howItShowsUp: z.string().min(55).max(260),
+    tenSecondShift: z.string().min(50).max(250),
+  }),
+  pacingAndBoundariesTip: z.string().min(50).max(240),
+  next12Months: SharedPaidRelationshipTimingSchema,
+});
+
+export const MarriedPaidRelationshipSchema = z.object({
+  relationshipStatus: z.literal("married"),
+  marriageBlueprint: z.object({
+    whereYouTrulyClick: z.string().min(55).max(260),
+    silentFrictionPoint: z.string().min(60).max(270),
+    leavingOutsideStressAtDoor: z.string().min(50).max(250),
+  }),
+  tenSecondShift: z.object({
+    exactPhraseToTry: z.string().min(30).max(190),
+    whyItSoftensTheRoom: z.string().min(45).max(240),
+  }),
+  next12Months: SharedPaidRelationshipTimingSchema,
+});
+
+export const RelationshipDeepDiveSchema = z.discriminatedUnion("relationshipStatus", [
+  SinglePaidRelationshipSchema,
+  DatingPaidRelationshipSchema,
+  MarriedPaidRelationshipSchema,
+]);
+
+export const RelationshipOnlySchema = z.object({
+  hookProofRelationship: RelationshipProofSchema,
+  fullBlueprintRelationship: RelationshipDeepDiveSchema,
+});
+
+// ============================================================================
 // COMBINED FREE PROOF & PAID FULL BLUEPRINT SCHEMAS
 // ============================================================================
 export const HookProofSchema = z.object({
   hardReset: HardResetProofSchema,
-  relationship: z.object({
-    branch: z.enum(["partnered", "solo"]),
-    archetype: z
-      .string()
-      .min(6)
-      .describe("1 crisp relational archetype line tailored to their relationship status."),
-    teaserBadge: z
-      .string()
-      .min(6)
-      .describe("Short locked friction teaser badge, e.g. '1 Core Partner Friction Trigger Detected'."),
-  }),
+  relationship: RelationshipProofSchema,
   career: CareerProofSchema,
   selfSabotage: z.object({
     loopName: z
@@ -290,23 +400,7 @@ export const HookProofSchema = z.object({
 
 export const FullBlueprintSchema = z.object({
   hardReset: HardResetDeepDiveSchema,
-  relationship: z.object({
-    coreAlignmentProfile: z
-      .string()
-      .min(30)
-      .describe("How they bond, feel safe, and experience alignment—tailored to Married/Relationship vs Single/Shifting."),
-    silentFrictionPattern: z
-      .string()
-      .min(25)
-      .describe("The subtle friction dynamic framed constructively with zero fatalism or doom."),
-    communicationShifts: z
-      .tuple([z.string().min(12), z.string().min(12)])
-      .describe("Exactly 2 concrete, practical communication shifts."),
-    clarityWindow: z
-      .string()
-      .min(6)
-      .describe("Upcoming relationship clarity window grounded in their timing."),
-  }),
+  relationship: RelationshipDeepDiveSchema,
   career: CareerDeepDiveSchema,
   selfSabotage: z.object({
     triggerMapLove: z
@@ -351,6 +445,9 @@ export const SynthesizedBlueprintSchema = z.object({
 
 export type HardResetProofPayload = z.infer<typeof HardResetProofSchema>;
 export type HardResetDeepDivePayload = z.infer<typeof HardResetDeepDiveSchema>;
+export type RelationshipProofPayload = z.infer<typeof RelationshipProofSchema>;
+export type RelationshipDeepDivePayload = z.infer<typeof RelationshipDeepDiveSchema>;
+export type RelationshipOnlyPayload = z.infer<typeof RelationshipOnlySchema>;
 export type CareerProofPayload = z.infer<typeof CareerProofSchema>;
 export type CareerDeepDivePayload = z.infer<typeof CareerDeepDiveSchema>;
 export type HookProofPayload = z.infer<typeof HookProofSchema>;

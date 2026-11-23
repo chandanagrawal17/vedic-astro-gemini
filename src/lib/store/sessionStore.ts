@@ -7,6 +7,7 @@ import {
   EntryHook,
   HardResetFeedback,
   HookKey,
+  LoveAccuracyFeedback,
   OnboardingInput,
   UnlockSource,
 } from "@/lib/types/blueprint";
@@ -53,6 +54,7 @@ export function saveSynthesizedSession(
     utmSource?: string | null;
     moonBoundaryFlag?: boolean;
     hardResetFeedback?: HardResetFeedback | null;
+    loveAccuracyFeedback?: LoveAccuracyFeedback | null;
     confirmedFlashpointIds?: string[];
     savedAlternativeLanes?: string[];
     modelVersion?: string | null;
@@ -75,6 +77,10 @@ export function saveSynthesizedSession(
       payload.hardResetFeedback !== undefined
         ? payload.hardResetFeedback
         : existing?.hardResetFeedback ?? null,
+    loveAccuracyFeedback:
+      payload.loveAccuracyFeedback !== undefined
+        ? payload.loveAccuracyFeedback
+        : existing?.loveAccuracyFeedback ?? null,
     confirmedFlashpointIds:
       payload.confirmedFlashpointIds !== undefined
         ? payload.confirmedFlashpointIds
@@ -166,6 +172,18 @@ export function updateSessionFeedback(
   const updated: BlueprintSession = {
     ...current,
     hardResetFeedback: feedback,
+  };
+  saveSession(updated);
+  return updated;
+}
+
+export function updateSessionLoveFeedback(
+  feedback: LoveAccuracyFeedback
+): BlueprintSession {
+  const current = loadSession();
+  const updated: BlueprintSession = {
+    ...current,
+    loveAccuracyFeedback: feedback,
   };
   saveSession(updated);
   return updated;

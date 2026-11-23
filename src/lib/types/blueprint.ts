@@ -7,8 +7,11 @@ export type PrecisionMode = "exact" | "window" | "dob_only";
 
 export type BirthWindow = "morning" | "afternoon" | "evening" | "late_night";
 
+export type CanonicalRelationshipStatus = "single" | "dating" | "married";
+
 export type RelationshipStatus =
   | "single"
+  | "dating"
   | "relationship"
   | "married"
   | "shifting";
@@ -26,6 +29,11 @@ export type HardResetFeedback =
   | "scarily_accurate"
   | "close"
   | "off";
+
+export type LoveAccuracyFeedback =
+  | "weirdly_accurate"
+  | "pretty_close"
+  | "not_really";
 
 export type HookKey =
   | "hard_reset"
@@ -50,8 +58,10 @@ export type FunnelEventName =
   | "chart_calculated"
   | "proof_viewed"
   | "accuracy_rated"
+  | "rated_love_mirror_accuracy"
   | "clicked_locked_monthly_timeline"
   | "clicked_locked_career_blueprint"
+  | "clicked_locked_relationship_guide"
   | "paywall_viewed"
   | "paywall_cta_clicked"
   | "beta_unlocked"
@@ -112,6 +122,7 @@ export interface BlueprintSession {
   freePayload: BlueprintFreePayload;
   paidPayload: BlueprintPaidPayload | null;
   hardResetFeedback: HardResetFeedback | null;
+  loveAccuracyFeedback?: LoveAccuracyFeedback | null;
   confirmedFlashpointIds?: string[];
   savedAlternativeLanes?: string[];
   isUnlocked: boolean;

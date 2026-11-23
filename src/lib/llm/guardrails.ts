@@ -1,14 +1,31 @@
 import type { CareerTelemetry } from "@/lib/astro/careerEngine";
 import type { HardResetTelemetry } from "@/lib/astro/hardResetEngine";
+import {
+  normalizeRelationshipStatus,
+  type RelationshipTelemetry,
+} from "@/lib/astro/relationshipEngine";
+import type { CanonicalRelationshipStatus } from "@/lib/types/blueprint";
 
 export const BANNED_ASTROLOGY_REGEX =
   /\b(astrolog\w*|horoscope|vedic|jyotish|zodiac|planet|planets|planetary|transit|transits|transited|transiting|eclipse|eclipses|lagna|ascendant|rising\s+sign|rashi|rashis|dasha|dasa|mahadasha|antardasha|pratyantardasha|nakshatra|pada|charan|kundali|kundli|rahu|ketu|shani|saturn|mangal|manglik|mars|shukr\w*|venus|budh\w*|mercury|surya|chandra\w*|guru|brihaspati|jupiter|pluto|uranus|neptune|retrograde|vakriya|sade\s*sati|dhaiya|panauti|dusthana|kendra|trikona|upachaya|bhava|graha|yoga|navamsha|navamsa|dashamsha|dashamsa|upapada|darapada|arudha|sudarshana|ashtakavarga|shadbala|gochar|karm[ai]\w*|upaay|tantr\w*|mantra|chakra|remedy|remedies|pitta|vata|kapha|dosha|sattva|rajas|tamas|purushartha|dharma|artha|kama|moksha|numerolog\w*|life\s*path\s*number|aries|taurus|gemini|cancer|leo|virgo|libra|scorpio|sagittarius|capricorn|aquarius|pisces|mesha|vrishabha|mithuna|karka|simha|kanya|tula|vrishchika|dhanu|makara|kumbha|meena|(?:1st|2nd|3rd|4th|5th|6th|7th|8th|9th|10th|11th|12th)\s+house)\b/gi;
 
 export const BANNED_FATALISTIC_REGEX =
-  /\b(divorce|infidelity|cheating|cursed|doomed|bad\s+luck|unlucky|early\s+death|clinical\s+depression|diagnose|therapy|therapist)\b/gi;
+  /\b(divorce|infidelity|cheating|unfaithful|doomed\s+to\s+fail|breakup\s+is\s+inevitable|cursed\s+in\s+love|destined\s+to\s+be\s+alone|cursed|doomed|bad\s+luck|unlucky|early\s+death|clinical\s+depression|diagnose|therapy|therapist)\b/gi;
 
 export const CLICHE_REGEX =
   /\b(deep transformation|tested your resilience|emerged stronger|cosmic shift|hidden energies|universe pushed|spiritual journey|major turning point)\b/gi;
+
+export const LOVE_CLICHE_REGEX =
+  /\b(twin flame|soulmate energy|toxic narcissist|value loyalty and communication|hate mixed signals|deep transformation|universe is aligning)\b/gi;
+
+export const SINGLE_BRANCH_FORBIDDEN_REGEX =
+  /\b(your spouse|your husband|your wife|your marriage)\b/gi;
+
+export const MARRIED_BRANCH_FORBIDDEN_REGEX =
+  /\b(dating apps?|swiping|first dates?|finding someone new)\b/gi;
+
+export const DATING_BRANCH_FORBIDDEN_REGEX =
+  /\b(your spouse|your husband|your wife|your marriage|as a single)\b/gi;
 
 export const CORPORATE_BUZZWORD_REGEX =
   /\b(synerg\w*|operational footprint|surgical diagnostic|deliverables|value proposition|paradigm|tactical posture|stakeholder alignment|scalable ecosystem|maximize upside)\b/gi;
@@ -34,12 +51,14 @@ export type GuardrailCategory =
   | "astrology_jargon"
   | "fatalistic_clinical"
   | "horoscope_cliche"
+  | "love_cliche"
   | "corporate_buzzword"
   | "free_tier_month_leak"
   | "free_tier_score_leak"
   | "paid_date_fidelity"
   | "paid_score_fidelity"
-  | "transition_empathy";
+  | "transition_empathy"
+  | "cross_branch_leak";
 
 export interface GuardrailViolation {
   path: string;
@@ -57,6 +76,7 @@ export interface GuardrailAuditResult {
 export interface GuardrailAuditOptions {
   hardResetTelemetry?: HardResetTelemetry;
   careerTelemetry?: CareerTelemetry;
+  relationshipTelemetry?: RelationshipTelemetry;
 }
 
 export class BlueprintGuardrailError extends Error {
@@ -103,6 +123,7 @@ function scanGlobalString(
   runRegexOnText(text, path, BANNED_ASTROLOGY_REGEX, "astrology_jargon", violations);
   runRegexOnText(text, path, BANNED_FATALISTIC_REGEX, "fatalistic_clinical", violations);
   runRegexOnText(text, path, CLICHE_REGEX, "horoscope_cliche", violations);
+  runRegexOnText(text, path, LOVE_CLICHE_REGEX, "love_cliche", violations);
   runRegexOnText(text, path, CORPORATE_BUZZWORD_REGEX, "corporate_buzzword", violations);
 }
 
@@ -165,6 +186,105 @@ function auditTieredConstraints(
   if (freeCareer) {
     walkStrings(freeCareer, "hook_proof_json.career", (text, p) => {
       scanFreeMonthLeaks(text, p, violations);
+    });
+  }
+
+  // 1b. Free-tier Relationship month/season leak scan + Cross-branch isolation checks
+  const freeRelationship =
+    hookProof?.relationship && typeof hookProof.relationship === "object"
+      ? (hookProof.relationship as Record<string, unknown>)
+      : null;
+  const paidRelationship =
+    fullBlueprint?.relationship && typeof fullBlueprint.relationship === "object"
+      ? (fullBlueprint.relationship as Record<string, unknown>)
+      : null;
+
+  if (freeRelationship) {
+    walkStrings(freeRelationship, "hook_proof_json.relationship", (text, p) => {
+      scanFreeMonthLeaks(text, p, violations);
+    });
+  }
+
+  const rawStatus =
+    options?.relationshipTelemetry?.userContext.relationshipStatus ??
+    (typeof freeRelationship?.relationshipStatus === "string"
+      ? freeRelationship.relationshipStatus
+      : typeof paidRelationship?.relationshipStatus === "string"
+        ? paidRelationship.relationshipStatus
+        : null);
+
+  if (rawStatus) {
+    const activeStatus: CanonicalRelationshipStatus =
+      normalizeRelationshipStatus(rawStatus);
+
+    const branchForbiddenRegex =
+      activeStatus === "single"
+        ? SINGLE_BRANCH_FORBIDDEN_REGEX
+        : activeStatus === "married"
+          ? MARRIED_BRANCH_FORBIDDEN_REGEX
+          : DATING_BRANCH_FORBIDDEN_REGEX;
+
+    if (freeRelationship) {
+      if (
+        typeof freeRelationship.relationshipStatus === "string" &&
+        freeRelationship.relationshipStatus !== activeStatus
+      ) {
+        violations.push({
+          path: "hook_proof_json.relationship.relationshipStatus",
+          category: "cross_branch_leak",
+          term: freeRelationship.relationshipStatus,
+          snippet: `Expected relationshipStatus "${activeStatus}"`,
+        });
+      }
+      walkStrings(freeRelationship, "hook_proof_json.relationship", (text, p) => {
+        runRegexOnText(text, p, branchForbiddenRegex, "cross_branch_leak", violations);
+      });
+    }
+
+    if (paidRelationship) {
+      if (
+        typeof paidRelationship.relationshipStatus === "string" &&
+        paidRelationship.relationshipStatus !== activeStatus
+      ) {
+        violations.push({
+          path: "full_blueprint_json.relationship.relationshipStatus",
+          category: "cross_branch_leak",
+          term: paidRelationship.relationshipStatus,
+          snippet: `Expected relationshipStatus "${activeStatus}"`,
+        });
+      }
+      walkStrings(paidRelationship, "full_blueprint_json.relationship", (text, p) => {
+        runRegexOnText(text, p, branchForbiddenRegex, "cross_branch_leak", violations);
+      });
+    }
+  }
+
+  // 1c. Paid-tier Relationship exact monthRange fidelity check
+  if (options?.relationshipTelemetry && paidRelationship) {
+    const next12 =
+      paidRelationship.next12Months &&
+      typeof paidRelationship.next12Months === "object"
+        ? (paidRelationship.next12Months as Record<string, unknown>)
+        : null;
+    const windows = Array.isArray(next12?.tightMonthlyWindows)
+      ? (next12.tightMonthlyWindows as Array<Record<string, unknown>>)
+      : [];
+    const allowedLoveRanges = new Set(
+      options.relationshipTelemetry.paidLayerSignals.forward12mTiming.upcomingWindows.map(
+        (w) => w.monthRange
+      )
+    );
+
+    windows.forEach((win, idx) => {
+      const mr = typeof win.monthRange === "string" ? win.monthRange : "";
+      if (!allowedLoveRanges.has(mr)) {
+        violations.push({
+          path: `full_blueprint_json.relationship.next12Months.tightMonthlyWindows[${idx}].monthRange`,
+          category: "paid_date_fidelity",
+          term: mr || "missing",
+          snippet: `Month range "${mr}" does not match relationshipTelemetry`,
+        });
+      }
     });
   }
 
@@ -344,4 +464,28 @@ export function auditBlueprintOutput(
     violations,
     flaggedTerms,
   };
+}
+
+/**
+ * Convenience helper for single-branch Relationship re-synthesis endpoints
+ * reusing the exact same rules on { hook_proof_json.relationship, full_blueprint_json.relationship }.
+ */
+export function auditRelationshipOnlyOutput(
+  draft: {
+    hookProofRelationship: unknown;
+    fullBlueprintRelationship: unknown;
+  },
+  relationshipTelemetry?: RelationshipTelemetry
+): GuardrailAuditResult {
+  return auditBlueprintOutput(
+    {
+      hook_proof_json: {
+        relationship: draft.hookProofRelationship,
+      },
+      full_blueprint_json: {
+        relationship: draft.fullBlueprintRelationship,
+      },
+    },
+    { relationshipTelemetry }
+  );
 }

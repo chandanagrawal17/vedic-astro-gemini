@@ -4,7 +4,6 @@ import React, { Suspense, useCallback, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import {
   Clock,
-  Heart,
   Lock,
   Plus,
   RotateCcw,
@@ -20,6 +19,7 @@ import { BragCardModal } from "@/components/blueprint/BragCardModal";
 import { CareerPaidSection } from "@/components/blueprint/CareerSections";
 import { HardResetPaidSection } from "@/components/blueprint/HardResetSections";
 import { LifeChaptersArc } from "@/components/blueprint/LifeChaptersArc";
+import { RelationshipPaidSection } from "@/components/blueprint/RelationshipSections";
 import {
   normalizeFreePayloadForUi,
   normalizePaidPayloadForUi,
@@ -28,9 +28,11 @@ import {
   BlueprintFreePayload,
   BlueprintPaidPayload,
   BlueprintSession,
+  CanonicalRelationshipStatus,
   EntryHook,
   HardResetFeedback,
   HookKey,
+  LoveAccuracyFeedback,
   OnboardingInput,
   UnlockSource,
 } from "@/lib/types/blueprint";
@@ -41,7 +43,7 @@ import {
   saveSynthesizedSession,
   updateSessionBookmarks,
 } from "@/lib/store/sessionStore";
-import { DEFAULT_ONBOARDING_INPUT } from "@/lib/mock/blueprintMock";
+import { buildMockBlueprint, DEFAULT_ONBOARDING_INPUT } from "@/lib/mock/blueprintMock";
 
 type HubTab = "overview" | "eras" | "career" | "love" | "blind_spot";
 
@@ -66,6 +68,7 @@ interface BlueprintApiResponse {
   entryHook?: EntryHook | null;
   utmSource?: string | null;
   accuracyFeedback?: HardResetFeedback | null;
+  loveAccuracyFeedback?: LoveAccuracyFeedback | null;
   confirmedFlashpointIds?: string[];
   savedAlternativeLanes?: string[];
   hook_proof_json: BlueprintFreePayload;
@@ -116,6 +119,8 @@ function BlueprintHubContent() {
   const [refreshingTime, setRefreshingTime] = useState(false);
   const [refreshError, setRefreshError] = useState<string | null>(null);
   const [refreshSuccess, setRefreshSuccess] = useState(false);
+  const [switchingRelStatus, setSwitchingRelStatus] = useState(false);
+  const [relSwitchError, setRelSwitchError] = useState<string | null>(null);
 
   const loadBlueprint = useCallback(async (targetId: string) => {
     setErrorMsg(null);
@@ -153,6 +158,7 @@ function BlueprintHubContent() {
           utmSource: data.utmSource,
           moonBoundaryFlag: data.moonBoundaryFlag,
           hardResetFeedback: data.accuracyFeedback,
+          loveAccuracyFeedback: data.loveAccuracyFeedback,
           confirmedFlashpointIds: data.confirmedFlashpointIds,
           savedAlternativeLanes: data.savedAlternativeLanes,
           modelVersion: data.modelVersion,
@@ -302,6 +308,86 @@ function BlueprintHubContent() {
       ? existing.filter((id) => id !== laneId)
       : [...existing, laneId];
     persistBookmarks({ savedAlternativeLanes: next });
+  };
+
+  const handleChangeRelationshipStatus = async (
+    nextStatus: CanonicalRelationshipStatus
+  ) => {
+    setRelSwitchError(null);
+    const targetId = session.chartId ?? session.sessionId;
+    if (!targetId || targetId === "demo-session") {
+      const nextInput = { ...session.input, relationshipStatus: nextStatus };
+      const rebuilt = buildMockBlueprint(nextInput, session.sessionId);
+      const saved = saveSynthesizedSession(nextInput, {
+        chartId: session.chartId,
+        sessionId: session.sessionId,
+        sessionToken: session.sessionToken ?? session.sessionId,
+        freePayload: {
+          ...freePayload,
+          relationship: rebuilt.freePayload.relationship,
+        },
+        paidPayload: {
+          ...paidPayload,
+          relationship: rebuilt.paidPayload.relationship,
+        },
+        isUnlocked: session.isUnlocked,
+        unlockTier: session.unlockTier,
+        loveAccuracyFeedback: null,
+      });
+      setSession(saved);
+      return;
+    }
+
+    setSwitchingRelStatus(true);
+    try {
+      const res = await fetch(
+        `/api/blueprint/${encodeURIComponent(targetId)}/relationship-status`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            relationshipStatus: nextStatus,
+            sessionToken: session.sessionToken ?? session.sessionId,
+          }),
+        }
+      );
+      const data = (await res.json()) as BlueprintApiResponse;
+      if (!res.ok) {
+        throw new Error(data.error || "Unable to update relationship status.");
+      }
+
+      const hydrated = saveSynthesizedSession(
+        data.input ?? { ...session.input, relationshipStatus: nextStatus },
+        {
+          chartId: data.chartId,
+          sessionId: data.sessionId,
+          sessionToken: data.sessionToken,
+          freePayload: data.hook_proof_json,
+          paidPayload: data.full_blueprint_json,
+          isUnlocked: data.isUnlocked,
+          unlockTier: data.unlockTier,
+          unlockSource: data.unlockSource,
+          unlockedAt: data.unlockedAt,
+          entryHook: data.entryHook,
+          utmSource: data.utmSource,
+          moonBoundaryFlag: data.moonBoundaryFlag,
+          hardResetFeedback: data.accuracyFeedback,
+          loveAccuracyFeedback: data.loveAccuracyFeedback,
+          confirmedFlashpointIds: data.confirmedFlashpointIds,
+          savedAlternativeLanes: data.savedAlternativeLanes,
+          modelVersion: data.modelVersion,
+        }
+      );
+      setSession(hydrated);
+    } catch (err) {
+      setRelSwitchError(
+        err instanceof Error
+          ? err.message
+          : "Unable to switch relationship status right now."
+      );
+    } finally {
+      setSwitchingRelStatus(false);
+    }
   };
 
   const handleRefreshBirthTime = async (e: React.FormEvent) => {
@@ -554,65 +640,17 @@ function BlueprintHubContent() {
           </div>
         )}
 
-        {/* TAB 4: LOVE */}
+        {/* TAB 4: LOVE (Full Single-Branch Relationship Guide) */}
         {activeTab === "love" && (
-          <div className="mt-5 space-y-4">
-            <ObsidianCard warmTint>
-              <div className="flex items-center gap-2">
-                <Heart className="h-4 w-4 text-[#FF6B2B]" />
-                <span className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[#F5A65B]">
-                  Relationship Mirror ·{" "}
-                  {freePayload.relationship.branch === "partnered"
-                    ? "Partnership"
-                    : "Solo & Dating"}
-                </span>
-              </div>
-
-              <h2 className="mt-2 font-serif text-[26px] leading-snug text-[#FDF6EE]">
-                &ldquo;{freePayload.relationship.archetype}&rdquo;
-              </h2>
-
-              <p className="mt-3 text-[15px] leading-[1.6] text-[#D9CEC5]">
-                {paidPayload.relationship.coreAlignmentProfile}
-              </p>
-
-              <div className="mt-4 rounded-2xl border border-[#F59E0B]/25 bg-[#120C09]/85 p-4">
-                <div className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[#F59E0B]">
-                  The Silent Friction Pattern
-                </div>
-                <p className="mt-1.5 text-[14px] leading-relaxed text-[#D9CEC5]">
-                  {paidPayload.relationship.silentFrictionPattern}
-                </p>
-              </div>
-            </ObsidianCard>
-
-            <ObsidianCard>
-              <div className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[#F5A65B]">
-                2 Practical Communication Shifts
-              </div>
-              <ul className="mt-3 space-y-3">
-                {paidPayload.relationship.communicationShifts.map(
-                  (shift, idx) => (
-                    <li
-                      key={idx}
-                      className="flex items-start gap-3 rounded-xl border border-[#F5A65B]/15 bg-[#120C09]/70 p-3.5"
-                    >
-                      <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[#FF6B2B]/20 text-[12px] font-semibold text-[#F5A65B]">
-                        {idx + 1}
-                      </span>
-                      <span className="text-[14px] leading-relaxed text-[#D9CEC5]">
-                        {shift}
-                      </span>
-                    </li>
-                  )
-                )}
-              </ul>
-
-              <div className="mt-4 flex items-center gap-2 rounded-xl border border-[#4ADE80]/20 bg-[#120C09]/70 px-3.5 py-2.5 text-[12px] text-[#4ADE80]">
-                <Sparkles className="h-4 w-4 shrink-0" />
-                <span>{paidPayload.relationship.clarityWindow}</span>
-              </div>
-            </ObsidianCard>
+          <div className="mt-5">
+            <RelationshipPaidSection
+              paidRelationship={paidPayload.relationship}
+              switchingStatus={switchingRelStatus}
+              statusSwitchError={relSwitchError}
+              onSelectStatus={(nextStatus) =>
+                void handleChangeRelationshipStatus(nextStatus)
+              }
+            />
           </div>
         )}
 

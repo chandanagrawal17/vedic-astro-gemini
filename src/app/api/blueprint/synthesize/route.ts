@@ -16,7 +16,7 @@ const SynthesizeRequestSchema = z.object({
   email: z.string().trim().email().max(254).optional(),
   firstName: z.string().trim().min(1).max(80).optional(),
   relationshipStatus: z
-    .enum(["single", "relationship", "married", "shifting"])
+    .enum(["single", "dating", "relationship", "married", "shifting"])
     .optional(),
   careerMode: z
     .enum([

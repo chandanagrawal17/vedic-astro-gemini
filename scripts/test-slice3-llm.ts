@@ -80,7 +80,10 @@ async function runTests() {
     true,
     `Test A jargon violations found: ${auditA.flaggedTerms.join(", ")}`
   );
-  assert.equal(synthA.payload.hook_proof_json.relationship.branch, "partnered");
+  assert.equal(
+    synthA.payload.hook_proof_json.relationship.relationshipStatus,
+    "married"
+  );
   assert.equal(synthA.payload.hook_proof_json.upgrade_hint, null);
 
   console.log("Test A PASSED (5 Hook Headlines):", {
@@ -88,7 +91,8 @@ async function runTests() {
     llmCallsMade: synthA.llmCallsMade,
     repairedAfterAudit: synthA.repairedAfterAudit,
     hook1_hardReset: `${synthA.payload.hook_proof_json.hardReset.primaryYearRange} — ${synthA.payload.hook_proof_json.hardReset.primaryChapterTitle}`,
-    hook2_relationship: synthA.payload.hook_proof_json.relationship.archetype,
+    hook2_relationship:
+      synthA.payload.hook_proof_json.relationship.lovableContradictionHeadline,
     hook3_career: `${synthA.payload.hook_proof_json.career.currentPathFitScore}% (${synthA.payload.hook_proof_json.career.fitHeadline}) [${synthA.payload.hook_proof_json.career.sweetSpotLabel}]`,
     hook4_selfSabotage: synthA.payload.hook_proof_json.selfSabotage.loopName,
     hook5_eras: `${synthA.payload.hook_proof_json.eras.era1.title} -> ${synthA.payload.hook_proof_json.eras.era2.title} -> ${synthA.payload.hook_proof_json.eras.era3Preview.title} (${synthA.payload.hook_proof_json.eras.era3Preview.percentComplete}%)`,
@@ -138,7 +142,10 @@ async function runTests() {
     true,
     `Test B jargon violations found: ${auditB.flaggedTerms.join(", ")}`
   );
-  assert.equal(synthB.payload.hook_proof_json.relationship.branch, "solo");
+  assert.equal(
+    synthB.payload.hook_proof_json.relationship.relationshipStatus,
+    "single"
+  );
   assert.ok(
     typeof synthB.payload.hook_proof_json.upgrade_hint === "string" &&
       synthB.payload.hook_proof_json.upgrade_hint.length > 10,
@@ -148,8 +155,10 @@ async function runTests() {
   console.log("Test B PASSED:", {
     modelVersion: synthB.modelVersion,
     llmCallsMade: synthB.llmCallsMade,
-    relationshipBranch: synthB.payload.hook_proof_json.relationship.branch,
-    relationshipArchetype: synthB.payload.hook_proof_json.relationship.archetype,
+    relationshipStatus:
+      synthB.payload.hook_proof_json.relationship.relationshipStatus,
+    relationshipHeadline:
+      synthB.payload.hook_proof_json.relationship.lovableContradictionHeadline,
     upgrade_hint: synthB.payload.hook_proof_json.upgrade_hint,
   });
 

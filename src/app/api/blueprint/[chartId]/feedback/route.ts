@@ -10,6 +10,9 @@ import { createSupabaseServerClient } from "@/lib/supabase/server";
 const FeedbackBodySchema = z
   .object({
     feedback: z.enum(["scarily_accurate", "close", "off"]).optional(),
+    loveFeedback: z
+      .enum(["weirdly_accurate", "pretty_close", "not_really"])
+      .optional(),
     confirmedFlashpointIds: z.array(z.string().trim().min(1).max(64)).max(30).optional(),
     savedAlternativeLanes: z.array(z.string().trim().min(1).max(80)).max(15).optional(),
     sessionToken: z.string().trim().min(4).max(128).optional(),
@@ -17,6 +20,7 @@ const FeedbackBodySchema = z
   .refine(
     (d) =>
       d.feedback !== undefined ||
+      d.loveFeedback !== undefined ||
       d.confirmedFlashpointIds !== undefined ||
       d.savedAlternativeLanes !== undefined,
     { message: "At least one feedback or bookmark field is required." }
@@ -65,6 +69,7 @@ export async function POST(
     const result = await saveBlueprintFeedback({
       chartIdOrToken: chartId,
       feedback: parsed.data.feedback,
+      loveFeedback: parsed.data.loveFeedback,
       confirmedFlashpointIds: parsed.data.confirmedFlashpointIds,
       savedAlternativeLanes: parsed.data.savedAlternativeLanes,
       userId,
@@ -80,6 +85,18 @@ export async function POST(
         entryHook: result.entryHook,
         metadata: {
           feedback: result.accuracyFeedback,
+        },
+      });
+    }
+
+    if (parsed.data.loveFeedback) {
+      await logFunnelEvent({
+        chartId: result.chartId,
+        email: result.email ?? userEmail,
+        eventName: "rated_love_mirror_accuracy",
+        entryHook: result.entryHook,
+        metadata: {
+          feedback: result.loveAccuracyFeedback,
         },
       });
     }

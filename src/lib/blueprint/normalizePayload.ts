@@ -30,6 +30,27 @@ export function isV2CareerPaid(c: unknown): boolean {
   );
 }
 
+export function isV2RelationshipProof(rel: unknown): boolean {
+  return Boolean(
+    rel &&
+      typeof rel === "object" &&
+      "lovableContradictionHeadline" in rel &&
+      "pastLoveShift" in rel &&
+      "halfUnlockedCliffhanger" in rel
+  );
+}
+
+export function isV2RelationshipPaid(rel: unknown): boolean {
+  if (!rel || typeof rel !== "object") return false;
+  const r = rel as Record<string, unknown>;
+  return (
+    (r.relationshipStatus === "single" ||
+      r.relationshipStatus === "dating" ||
+      r.relationshipStatus === "married") &&
+    "next12Months" in r
+  );
+}
+
 export function normalizeFreePayloadForUi(
   raw: BlueprintFreePayload
 ): BlueprintFreePayload {
@@ -86,9 +107,46 @@ export function normalizeFreePayloadForUi(
         },
       };
 
+  const relRaw = raw.relationship as unknown as Record<string, unknown>;
+  const isPartneredLegacy = relRaw?.branch === "partnered";
+
+  const relationship: BlueprintFreePayload["relationship"] = isV2RelationshipProof(
+    relRaw
+  )
+    ? raw.relationship
+    : {
+        relationshipStatus: isPartneredLegacy ? "married" : "single",
+        lovableContradictionHeadline: String(
+          relRaw?.archetype ??
+            "A Soft-Hearted Romantic Wearing an Independent Jacket"
+        ),
+        caughtRedHandedTell: isPartneredLegacy
+          ? "You stay warm and handle practical details smoothly—until fatigue hits and you quietly go hyper-independent instead of saying what you actually need."
+          : "You stay warm and engaged across the table, while a quiet radar inside runs a fast consistency audit the second someone turns vague.",
+        somaticBodyTell:
+          "When relational tension lingers, your shoulders tighten, your sleep turns weirdly light, and you organize or dive into work to feel steady again.",
+        pastLoveShift: {
+          yearRange: "2022 – 2023",
+          whatShifted:
+            "Going through the motions in half-clear connections stopped working—quietly resetting what real mutual effort looks like for you.",
+          accuracyPrompt:
+            "Be honest—did something quietly rewire how you do love around 2022 – 2023?",
+        },
+        halfUnlockedCliffhanger: {
+          unlockedHalf: isPartneredLegacy
+            ? "You bond through steady follow-through, shared humor, and real reliability over noisy gestures."
+            : "You're magnetized toward confident, sharp people who carry real warmth and hold their own in conversation.",
+          lockedHalfTeaser: isPartneredLegacy
+            ? "Unlock the 1 silent marriage stress loop + the 10-second shift that softens tough nights"
+            : "Unlock the 1 quiet trait you keep overlooking that actually brings peace past Month 3",
+        },
+        lockedTimingYearLabel: "2026 – 2027",
+      };
+
   return {
     ...raw,
     hardReset,
+    relationship,
     career,
   };
 }
@@ -189,9 +247,53 @@ export function normalizePaidPayloadForUi(
         },
       };
 
+  const relRaw = raw.relationship as unknown as Record<string, unknown>;
+  const relationship: BlueprintPaidPayload["relationship"] = isV2RelationshipPaid(
+    relRaw
+  )
+    ? raw.relationship
+    : {
+        relationshipStatus: "single",
+        sparkVsPeace: {
+          whoCatchesYourEye: String(
+            relRaw?.coreAlignmentProfile ??
+              "You're drawn to confident, sharp people with real presence and direct warmth."
+          ),
+          whereTheGapHides: String(
+            relRaw?.silentFrictionPattern ??
+              "High initial chemistry fades fast when someone isn't emotionally consistent once life gets busy."
+          ),
+          whatToStopExcusing:
+            "Hot-and-cold communication that forces you to guess where you stand.",
+        },
+        singleBlindSpot: {
+          loopName: "Fast-Forward Auditing",
+          howItPlaysOut: String(
+            relRaw?.silentFrictionPattern ??
+              "You evaluate long-term fit inside your head early instead of letting small moments unfold."
+          ),
+          gentleMentorReset: String(
+            Array.isArray(relRaw?.communicationShifts)
+              ? relRaw.communicationShifts[0] ??
+                  "Treat the first three dates as curiosity rather than a lifelong verdict."
+              : "Treat the first three dates as curiosity rather than a lifelong verdict."
+          ),
+        },
+        greenFlagBodyCheck:
+          "Notice when your shoulders drop, laughter feels effortless, and you don't feel any urge to perform or recheck messages.",
+        next12Months: {
+          bigPictureSummary: String(
+            relRaw?.clarityWindow ??
+              "A steady recalibration year where real consistency beats high-noise chemistry."
+          ),
+          tightMonthlyWindows: [],
+        },
+      };
+
   return {
     ...raw,
     hardReset,
+    relationship,
     career,
   };
 }

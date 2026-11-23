@@ -131,6 +131,16 @@ function convertZodType(zodType: z.ZodTypeAny): JsonSchemaObject {
     return withDescription({ anyOf: options }, description);
   }
 
+  if (zodType instanceof z.ZodDiscriminatedUnion) {
+    const optionsMap = def.optionsMap as Map<unknown, z.ZodTypeAny> | undefined;
+    const optionsList = optionsMap
+      ? Array.from(optionsMap.values())
+      : Array.isArray(def.options)
+        ? (def.options as z.ZodTypeAny[])
+        : [];
+    return withDescription({ anyOf: optionsList.map(convertZodType) }, description);
+  }
+
   return withDescription({ type: "string" }, description);
 }
 

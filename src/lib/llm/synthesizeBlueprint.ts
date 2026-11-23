@@ -8,21 +8,36 @@ import {
   computeHardResetTelemetry,
   HardResetTelemetry,
 } from "@/lib/astro/hardResetEngine";
+import {
+  computeRelationshipTelemetry,
+  normalizeRelationshipStatus,
+  RelationshipTelemetry,
+} from "@/lib/astro/relationshipEngine";
 import { NormalizedChartJson } from "@/lib/astro/types";
 import {
+  RelationshipDeepDivePayload,
+  RelationshipOnlyPayload,
+  RelationshipOnlySchema,
+  RelationshipProofPayload,
   SynthesizedBlueprintPayload,
   SynthesizedBlueprintSchema,
 } from "@/lib/llm/blueprintSchema";
 import { getLlmProvider } from "@/lib/llm/geminiProvider";
 import {
   auditBlueprintOutput,
+  auditRelationshipOnlyOutput,
   BlueprintGuardrailError,
   GuardrailAuditResult,
 } from "@/lib/llm/guardrails";
 import { buildCareerPromptSection } from "@/lib/llm/prompts/careerPrompt";
 import { buildHardResetPromptSection } from "@/lib/llm/prompts/hardResetPrompt";
+import { buildRelationshipPromptSection } from "@/lib/llm/prompts/relationshipPrompt";
 import { LlmProvider } from "@/lib/llm/provider";
-import { CareerMode, RelationshipStatus } from "@/lib/types/blueprint";
+import {
+  CanonicalRelationshipStatus,
+  CareerMode,
+  RelationshipStatus,
+} from "@/lib/types/blueprint";
 
 export const FIRST_NAME_PLACEHOLDER = "{{FIRST_NAME}}";
 
@@ -49,8 +64,9 @@ export interface SynthesizeBlueprintResult {
 
 const RELATIONSHIP_LABELS: Record<RelationshipStatus, string> = {
   married: "Married",
+  dating: "Dating Someone",
   relationship: "In a Relationship",
-  single: "Single / Dating",
+  single: "Single",
   shifting: "Navigating a Shift",
 };
 
@@ -87,9 +103,14 @@ function summarizeDivisionalChart(
 function computeTelemetryBundle(input: SynthesizeBlueprintInput): {
   hardResetTelemetry: HardResetTelemetry;
   careerTelemetry: CareerTelemetry;
+  relationshipTelemetry: RelationshipTelemetry;
   canonicalCareerMode: CanonicalCareerMode;
+  canonicalRelationshipStatus: CanonicalRelationshipStatus;
 } {
   const canonicalCareerMode = normalizeCareerMode(input.profile.careerMode);
+  const canonicalRelationshipStatus = normalizeRelationshipStatus(
+    input.profile.relationshipStatus
+  );
   const refDate = input.referenceDate ?? new Date();
 
   const hardResetTelemetry = computeHardResetTelemetry(
@@ -97,7 +118,7 @@ function computeTelemetryBundle(input: SynthesizeBlueprintInput): {
     {
       firstName: FIRST_NAME_PLACEHOLDER,
       dobIso: input.profile.dobIso,
-      relationshipStatus: input.profile.relationshipStatus,
+      relationshipStatus: canonicalRelationshipStatus,
       careerMode: canonicalCareerMode,
       careerField: input.profile.careerField,
     },
@@ -116,36 +137,55 @@ function computeTelemetryBundle(input: SynthesizeBlueprintInput): {
     refDate
   );
 
-  return { hardResetTelemetry, careerTelemetry, canonicalCareerMode };
+  const relationshipTelemetry = computeRelationshipTelemetry(
+    input.normalizedChart,
+    {
+      firstName: FIRST_NAME_PLACEHOLDER,
+      relationshipStatus: canonicalRelationshipStatus,
+    },
+    input.normalizedChart.precisionMode,
+    refDate
+  );
+
+  return {
+    hardResetTelemetry,
+    careerTelemetry,
+    relationshipTelemetry,
+    canonicalCareerMode,
+    canonicalRelationshipStatus,
+  };
 }
 
 /**
  * Builds the zero-PII prompt payload sent to Gemini.
- * Strips email and replaces first_name with the literal {{FIRST_NAME}} placeholder.
- * Includes server-only deterministic telemetry for Hook #1 (Hard Reset) and Hook #3 (Career).
+ * Strips email and replaces firstName with the literal {{FIRST_NAME}} placeholder.
+ * Includes server-only deterministic telemetry for Hook #1 (Hard Reset), Hook #2 (Relationship), and Hook #3 (Career).
  */
 export function buildChartSignalPayload(
   input: SynthesizeBlueprintInput,
   telemetryOverride?: {
     hardResetTelemetry: HardResetTelemetry;
     careerTelemetry: CareerTelemetry;
+    relationshipTelemetry: RelationshipTelemetry;
     canonicalCareerMode: CanonicalCareerMode;
+    canonicalRelationshipStatus: CanonicalRelationshipStatus;
   }
 ) {
   const { normalizedChart, profile } = input;
-  const { hardResetTelemetry, careerTelemetry, canonicalCareerMode } =
-    telemetryOverride ?? computeTelemetryBundle(input);
+  const {
+    hardResetTelemetry,
+    careerTelemetry,
+    relationshipTelemetry,
+    canonicalCareerMode,
+    canonicalRelationshipStatus,
+  } = telemetryOverride ?? computeTelemetryBundle(input);
   const isExact = normalizedChart.precisionMode === "exact";
-  const isPartnered =
-    profile.relationshipStatus === "married" ||
-    profile.relationshipStatus === "relationship";
 
   return {
     userProfile: {
       firstName: FIRST_NAME_PLACEHOLDER,
-      relationshipStatus: profile.relationshipStatus,
-      relationshipLabel: RELATIONSHIP_LABELS[profile.relationshipStatus],
-      relationshipBranch: isPartnered ? "partnered" : "solo",
+      relationshipStatus: canonicalRelationshipStatus,
+      relationshipLabel: RELATIONSHIP_LABELS[canonicalRelationshipStatus],
       careerMode: canonicalCareerMode,
       careerModeLabel: CAREER_MODE_LABELS[canonicalCareerMode],
       careerField: profile.careerField.trim() || "(not specified)",
@@ -156,6 +196,7 @@ export function buildChartSignalPayload(
       moonBoundaryFlag: normalizedChart.moonBoundaryFlag,
     },
     hardResetTelemetry,
+    relationshipTelemetry,
     careerTelemetry,
     exactAnchorsToPreserveVerbatim: {
       hardResetPrimaryYearRange:
@@ -166,6 +207,15 @@ export function buildChartSignalPayload(
         normalizedChart.hardResetWindow.dateRange,
       hardResetNextPressureMonthRange:
         hardResetTelemetry.upcoming_prep_window.month_range,
+      relationshipStatus: canonicalRelationshipStatus,
+      relationshipPastLoveYearRange:
+        relationshipTelemetry.freeLayerSignals.pastLoveShift.yearRange,
+      relationshipLockedTimingYearLabel:
+        relationshipTelemetry.freeLayerSignals.lockedTimingYearLabel,
+      relationshipUpcomingWindows:
+        relationshipTelemetry.paidLayerSignals.forward12mTiming.upcomingWindows.map(
+          (w) => ({ id: w.id, monthRange: w.monthRange })
+        ),
       careerCurrentPathFitScore: careerTelemetry.scores.current_path_fit_score,
       careerPathScores: {
         day_job: careerTelemetry.scores.day_job_score,
@@ -179,7 +229,6 @@ export function buildChartSignalPayload(
       era3DateRange: normalizedChart.eras.era3.dateRange,
       era3PercentComplete: normalizedChart.eras.era3.percentComplete ?? 50,
       era4DateRange: normalizedChart.eras.era4.dateRange,
-      relationshipBranch: isPartnered ? "partnered" : "solo",
     },
     internalCalculationSignals: {
       corePlacements: {
@@ -236,7 +285,8 @@ export function interpolateFirstName<T>(value: T, firstName: string): T {
 
 function buildSystemPrompt(
   input: SynthesizeBlueprintInput,
-  canonicalCareerMode: CanonicalCareerMode
+  canonicalCareerMode: CanonicalCareerMode,
+  canonicalRelationshipStatus: CanonicalRelationshipStatus
 ): string {
   const { normalizedChart, profile } = input;
   const isExact = normalizedChart.precisionMode === "exact";
@@ -253,14 +303,6 @@ function buildSystemPrompt(
       }
 - You MUST populate hook_proof_json.upgrade_hint with a warm, friendly 1-sentence note letting the user know that adding their exact birth time later sharpens their timeline and workplace precision for free.`;
 
-  const relationshipGuidance =
-    profile.relationshipStatus === "married" ||
-    profile.relationshipStatus === "relationship"
-      ? `RELATIONSHIP BRANCH = "partnered" (${RELATIONSHIP_LABELS[profile.relationshipStatus]}):
-- Focus Hook 2 on partnership alignment, unspoken needs, emotional bandwidth under stress, and silent friction dynamics with a committed partner. Frame friction constructively with zero doom.`
-      : `RELATIONSHIP BRANCH = "solo" (${RELATIONSHIP_LABELS[profile.relationshipStatus]}):
-- Focus Hook 2 on attraction magnetism, repeating partner patterns, relational pacing, and what actually sustains long-term peace.`;
-
   return `You are the behavioral synthesis engine for Personal Blueprint, a modern US self-reflection platform ("Ancient pattern intelligence meets modern self-reflection").
 Your job is to translate the internal pattern calculation signals and deterministic telemetry in the user payload into deeply resonant, candid, high-agency modern behavioral insights across 5 hooks, strictly separated into free proof (hook_proof_json) and paid deep-dive (full_blueprint_json).
 
@@ -272,32 +314,109 @@ TONE & VOICE:
 ABSOLUTE JARGON BAN (STRICTLY ENFORCED BY AUTOMATED SCANNER):
 You MUST NEVER output ANY of the following words or concepts anywhere in any JSON string value (including titles, badges, pills, or summaries):
 - Any astrology, horoscope, zodiac, planetary, Sanskrit, Ayurvedic, or numerology terms: astrology, astrological, horoscope, vedic, jyotish, zodiac, planet, planets, planetary, transit, transits, eclipse, lagna, ascendant, rising sign, rashi, dasha, mahadasha, antardasha, nakshatra, pada, kundali, kundli, rahu, ketu, shani, saturn, mangal, mars, shukra, venus, budha, mercury, surya, chandra, guru, jupiter, pluto, uranus, neptune, retrograde, sade sati, dhaiya, panauti, dusthana, kendra, trikona, navamsha, navamsa, dashamsha, dashamsa, upapada, arudha, karma, karmic, upaay, mantra, chakra, remedy, pitta, vata, kapha, dosha, dharma, numerology, life path number, any zodiac sign name (Aries..Pisces or Mesha..Meena), or any numbered house ("1st house" .. "12th house").
-- Any fatalistic or clinical terms: divorce, infidelity, cheating, cursed, doomed, bad luck, unlucky, early death, clinical depression, diagnose, therapy, therapist.
+- Any fatalistic or clinical terms: divorce, infidelity, cheating, unfaithful, doomed to fail, breakup is inevitable, cursed in love, destined to be alone, cursed, doomed, bad luck, unlucky, early death, clinical depression, diagnose, therapy, therapist.
 
 ${precisionConstraint}
 
 ${buildHardResetPromptSection(FIRST_NAME_PLACEHOLDER)}
 
-${relationshipGuidance}
+${buildRelationshipPromptSection(FIRST_NAME_PLACEHOLDER, canonicalRelationshipStatus)}
 
 ${buildCareerPromptSection(FIRST_NAME_PLACEHOLDER, canonicalCareerMode, profile.careerField.trim())}
+
+HOOK #4 — #1 SELF-SABOTAGE LOOP (CANDID, SHAME-FREE PATTERN BREAKER):
+- Tone: Direct, empathetic mirror naming the subtle nervous-system or cognitive reflex without guilt, shame, or therapy-speak.
+- Free tier (\`hook_proof_json.selfSabotage\`): Crisp evocative \`loopName\` (e.g. "The Urgency Loop") + 1 painfully relatable everyday \`symptomSentence\`.
+- Paid tier (\`full_blueprint_json.selfSabotage\`): Concrete real-world triggers in love (\`triggerMapLove\`) and career (\`triggerMapCareer\`) + 3 grounded, secular cognitive/somatic \`antidoteSteps\`.
+
+HOOK #5 — 10-YEAR ARC IN 3 ERAS (CRISP EDITORIAL STORYTELLER):
+- Tone: Concise, evocative chapter narrative rooted in lived priorities and momentum—zero karma, fate, or cosmic-alignment phrasing.
+- Free tier (\`hook_proof_json.eras\`): Crisp 2–4 word titles (\`era1\`, \`era2\`, \`era3Preview\`) + 1–2 grounded sentences summarizing how each chapter reshaped priorities, preserving \`dateRange\` and \`percentComplete\` verbatim.
+- Paid tier (\`full_blueprint_json.eras\`): Concrete behavioral priorities inside \`era3Playbook\` (\`coreMandate\`, \`doubleDown\`, \`eliminate\`) + forward opportunity theme in \`era4Preview\`.
 
 VERBATIM ANCHORS:
 - Preserve all strings and numbers in exactAnchorsToPreserveVerbatim verbatim in their corresponding output fields.
 - Hook 5 must set era1.id = "era1", era1.label = "Era 1", era2.id = "era2", era2.label = "Era 2".`;
 }
 
+function enforceRelationshipAnchors(
+  freeRel: RelationshipProofPayload,
+  paidRel: RelationshipDeepDivePayload,
+  relationshipTelemetry: RelationshipTelemetry
+): {
+  freeRelationship: RelationshipProofPayload;
+  paidRelationship: RelationshipDeepDivePayload;
+} {
+  const canonicalStatus = relationshipTelemetry.userContext.relationshipStatus;
+  const telemetryWindows =
+    relationshipTelemetry.paidLayerSignals.forward12mTiming.upcomingWindows;
+
+  const pinnedWindows = paidRel.next12Months.tightMonthlyWindows.map(
+    (win, idx) => {
+      const tWin =
+        telemetryWindows.find((w) => w.id === win.id) ?? telemetryWindows[idx];
+      if (!tWin) return win;
+      return {
+        ...win,
+        id: tWin.id,
+        monthRange: tWin.monthRange,
+      };
+    }
+  );
+
+  const freeRelationship: RelationshipProofPayload = {
+    ...freeRel,
+    relationshipStatus: canonicalStatus,
+    pastLoveShift: {
+      ...freeRel.pastLoveShift,
+      yearRange: relationshipTelemetry.freeLayerSignals.pastLoveShift.yearRange,
+    },
+    lockedTimingYearLabel:
+      relationshipTelemetry.freeLayerSignals.lockedTimingYearLabel,
+  };
+
+  let paidRelationship: RelationshipDeepDivePayload;
+  if (paidRel.relationshipStatus === "single") {
+    paidRelationship = {
+      ...paidRel,
+      relationshipStatus: "single",
+      next12Months: {
+        ...paidRel.next12Months,
+        tightMonthlyWindows: pinnedWindows,
+      },
+    };
+  } else if (paidRel.relationshipStatus === "dating") {
+    paidRelationship = {
+      ...paidRel,
+      relationshipStatus: "dating",
+      next12Months: {
+        ...paidRel.next12Months,
+        tightMonthlyWindows: pinnedWindows,
+      },
+    };
+  } else {
+    paidRelationship = {
+      ...paidRel,
+      relationshipStatus: "married",
+      next12Months: {
+        ...paidRel.next12Months,
+        tightMonthlyWindows: pinnedWindows,
+      },
+    };
+  }
+
+  return { freeRelationship, paidRelationship };
+}
+
 function enforceDeterministicAnchors(
   draft: SynthesizedBlueprintPayload,
   input: SynthesizeBlueprintInput,
   hardResetTelemetry: HardResetTelemetry,
-  careerTelemetry: CareerTelemetry
+  careerTelemetry: CareerTelemetry,
+  relationshipTelemetry: RelationshipTelemetry
 ): SynthesizedBlueprintPayload {
-  const { normalizedChart, profile } = input;
+  const { normalizedChart } = input;
   const isExact = normalizedChart.precisionMode === "exact";
-  const isPartnered =
-    profile.relationshipStatus === "married" ||
-    profile.relationshipStatus === "relationship";
 
   const defaultUpgradeHint =
     "Add your exact birth time anytime to sharpen your workplace perception and monthly timing windows for free.";
@@ -382,6 +501,12 @@ function enforceDeterministicAnchors(
       }
     );
 
+  const { freeRelationship, paidRelationship } = enforceRelationshipAnchors(
+    draft.hook_proof_json.relationship,
+    draft.full_blueprint_json.relationship,
+    relationshipTelemetry
+  );
+
   return {
     hook_proof_json: {
       ...draft.hook_proof_json,
@@ -403,10 +528,7 @@ function enforceDeterministicAnchors(
           previewItems,
         },
       },
-      relationship: {
-        ...draft.hook_proof_json.relationship,
-        branch: isPartnered ? "partnered" : "solo",
-      },
+      relationship: freeRelationship,
       career: {
         ...draft.hook_proof_json.career,
         currentPathFitScore: careerTelemetry.scores.current_path_fit_score,
@@ -453,6 +575,7 @@ function enforceDeterministicAnchors(
           monthRange: hardResetTelemetry.upcoming_prep_window.month_range,
         },
       },
+      relationship: paidRelationship,
       career: {
         ...draft.full_blueprint_json.career,
         pathComparison: lockedPathComparison,
@@ -497,7 +620,11 @@ export async function synthesizeBlueprint(
   provider: LlmProvider = getLlmProvider()
 ): Promise<SynthesizeBlueprintResult> {
   const telemetry = computeTelemetryBundle(input);
-  const systemPrompt = buildSystemPrompt(input, telemetry.canonicalCareerMode);
+  const systemPrompt = buildSystemPrompt(
+    input,
+    telemetry.canonicalCareerMode,
+    telemetry.canonicalRelationshipStatus
+  );
   const userPayload = buildChartSignalPayload(input, telemetry);
 
   let llmCallsMade = 0;
@@ -515,11 +642,13 @@ export async function synthesizeBlueprint(
     rawDraft,
     input,
     telemetry.hardResetTelemetry,
-    telemetry.careerTelemetry
+    telemetry.careerTelemetry,
+    telemetry.relationshipTelemetry
   );
   let audit = auditBlueprintOutput(finalPayload, {
     hardResetTelemetry: telemetry.hardResetTelemetry,
     careerTelemetry: telemetry.careerTelemetry,
+    relationshipTelemetry: telemetry.relationshipTelemetry,
   });
 
   if (!audit.passed) {
@@ -548,11 +677,13 @@ export async function synthesizeBlueprint(
       repairedDraft,
       input,
       telemetry.hardResetTelemetry,
-      telemetry.careerTelemetry
+      telemetry.careerTelemetry,
+      telemetry.relationshipTelemetry
     );
     audit = auditBlueprintOutput(finalPayload, {
       hardResetTelemetry: telemetry.hardResetTelemetry,
       careerTelemetry: telemetry.careerTelemetry,
+      relationshipTelemetry: telemetry.relationshipTelemetry,
     });
 
     if (!audit.passed) {
@@ -569,11 +700,135 @@ export async function synthesizeBlueprint(
     }
   }
 
-  // Restore user's actual first_name server-side after validation + guardrail pass
+  // Restore user's actual firstName server-side after validation + guardrail pass
   finalPayload = interpolateFirstName(finalPayload, input.profile.firstName);
 
   return {
     payload: finalPayload,
+    modelVersion: provider.modelName,
+    llmCallsMade,
+    repairedAfterAudit,
+  };
+}
+
+export interface SynthesizeRelationshipOnlyResult {
+  hookProofRelationship: RelationshipProofPayload;
+  fullBlueprintRelationship: RelationshipDeepDivePayload;
+  modelVersion: string;
+  llmCallsMade: number;
+  repairedAfterAudit: boolean;
+}
+
+/**
+ * Re-synthesizes ONLY Hook #2 (Relationship Mirror) when a user updates their relationship status,
+ * preserving Hard Reset, Career, Eras, and Self-Sabotage verbatim.
+ */
+export async function synthesizeRelationshipOnly(
+  input: {
+    normalizedChart: NormalizedChartJson;
+    firstName: string;
+    relationshipStatus: RelationshipStatus;
+    referenceDate?: Date;
+  },
+  provider: LlmProvider = getLlmProvider()
+): Promise<SynthesizeRelationshipOnlyResult> {
+  const canonicalStatus = normalizeRelationshipStatus(input.relationshipStatus);
+  const relationshipTelemetry = computeRelationshipTelemetry(
+    input.normalizedChart,
+    {
+      firstName: FIRST_NAME_PLACEHOLDER,
+      relationshipStatus: canonicalStatus,
+    },
+    input.normalizedChart.precisionMode,
+    input.referenceDate ?? new Date()
+  );
+
+  const systemPrompt = `You are translating \`relationshipTelemetry\` into \`hookProofRelationship\` (FREE) and \`fullBlueprintRelationship\` (PAID) using the literal placeholder ${FIRST_NAME_PLACEHOLDER} for the user's name.
+ABSOLUTE JARGON BAN: Never output any astrology, Sanskrit, planet, sign, house, numerology, or fatalistic/clinical terms.
+${buildRelationshipPromptSection(FIRST_NAME_PLACEHOLDER, canonicalStatus)}`;
+
+  const userPayload = {
+    firstName: FIRST_NAME_PLACEHOLDER,
+    relationshipStatus: canonicalStatus,
+    relationshipTelemetry,
+  };
+
+  let llmCallsMade = 1;
+  let repairedAfterAudit = false;
+
+  const rawDraft: RelationshipOnlyPayload = await provider.generateStructuredJson(
+    systemPrompt,
+    userPayload,
+    RelationshipOnlySchema,
+    { temperature: 0.4 }
+  );
+
+  let anchored = enforceRelationshipAnchors(
+    rawDraft.hookProofRelationship,
+    rawDraft.fullBlueprintRelationship,
+    relationshipTelemetry
+  );
+
+  let audit = auditRelationshipOnlyOutput(
+    {
+      hookProofRelationship: anchored.freeRelationship,
+      fullBlueprintRelationship: anchored.paidRelationship,
+    },
+    relationshipTelemetry
+  );
+
+  if (!audit.passed) {
+    repairedAfterAudit = true;
+    llmCallsMade += 1;
+
+    const repairSystemPrompt = buildRepairSystemPrompt(systemPrompt, audit);
+    const repairedDraft = await provider.generateStructuredJson(
+      repairSystemPrompt,
+      {
+        originalContext: userPayload,
+        draftToRepair: {
+          hookProofRelationship: anchored.freeRelationship,
+          fullBlueprintRelationship: anchored.paidRelationship,
+        },
+        flaggedTerms: audit.flaggedTerms,
+        violations: audit.violations,
+      },
+      RelationshipOnlySchema,
+      { temperature: 0.25 }
+    );
+
+    anchored = enforceRelationshipAnchors(
+      repairedDraft.hookProofRelationship,
+      repairedDraft.fullBlueprintRelationship,
+      relationshipTelemetry
+    );
+
+    audit = auditRelationshipOnlyOutput(
+      {
+        hookProofRelationship: anchored.freeRelationship,
+        fullBlueprintRelationship: anchored.paidRelationship,
+      },
+      relationshipTelemetry
+    );
+
+    if (!audit.passed) {
+      throw new BlueprintGuardrailError(
+        `Relationship Mirror synthesis failed content guardrail after retry (flagged: ${audit.flaggedTerms.join(", ")}).`,
+        audit.violations,
+        audit.flaggedTerms
+      );
+    }
+  }
+
+  return {
+    hookProofRelationship: interpolateFirstName(
+      anchored.freeRelationship,
+      input.firstName
+    ),
+    fullBlueprintRelationship: interpolateFirstName(
+      anchored.paidRelationship,
+      input.firstName
+    ),
     modelVersion: provider.modelName,
     llmCallsMade,
     repairedAfterAudit,

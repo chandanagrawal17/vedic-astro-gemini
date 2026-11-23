@@ -48,7 +48,7 @@ function makeSpyLlmProvider() {
     modelName: "gemini-3.8-flash-test",
     async generateStructuredJson(_sys, _user, schema) {
       calls += 1;
-      const payload = makeCleanBlueprintPayload();
+      const payload = makeCleanBlueprintPayload("single");
       payload.hook_proof_json.career.fitHeadline = `Run ${calls} Alignment Fit`;
       return schema.parse(payload);
     },
