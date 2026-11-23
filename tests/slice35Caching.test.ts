@@ -49,7 +49,7 @@ function makeSpyLlmProvider() {
     async generateStructuredJson(_sys, _user, schema) {
       calls += 1;
       const payload = makeCleanBlueprintPayload();
-      payload.hook_proof_json.career.subtitle = `Run ${calls} Alignment`;
+      payload.hook_proof_json.career.fitHeadline = `Run ${calls} Alignment Fit`;
       return schema.parse(payload);
     },
   };

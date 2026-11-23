@@ -7,10 +7,20 @@ import {
 } from "@/lib/supabase/blueprintSession";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
-const FeedbackBodySchema = z.object({
-  feedback: z.enum(["scarily_accurate", "close", "off"]),
-  sessionToken: z.string().trim().min(4).max(128).optional(),
-});
+const FeedbackBodySchema = z
+  .object({
+    feedback: z.enum(["scarily_accurate", "close", "off"]).optional(),
+    confirmedFlashpointIds: z.array(z.string().trim().min(1).max(64)).max(30).optional(),
+    savedAlternativeLanes: z.array(z.string().trim().min(1).max(80)).max(15).optional(),
+    sessionToken: z.string().trim().min(4).max(128).optional(),
+  })
+  .refine(
+    (d) =>
+      d.feedback !== undefined ||
+      d.confirmedFlashpointIds !== undefined ||
+      d.savedAlternativeLanes !== undefined,
+    { message: "At least one feedback or bookmark field is required." }
+  );
 
 export async function POST(
   req: NextRequest,
@@ -55,20 +65,24 @@ export async function POST(
     const result = await saveBlueprintFeedback({
       chartIdOrToken: chartId,
       feedback: parsed.data.feedback,
+      confirmedFlashpointIds: parsed.data.confirmedFlashpointIds,
+      savedAlternativeLanes: parsed.data.savedAlternativeLanes,
       userId,
       userEmail,
       sessionToken,
     });
 
-    await logFunnelEvent({
-      chartId: result.chartId,
-      email: result.email ?? userEmail,
-      eventName: "accuracy_rated",
-      entryHook: result.entryHook,
-      metadata: {
-        feedback: result.accuracyFeedback,
-      },
-    });
+    if (parsed.data.feedback) {
+      await logFunnelEvent({
+        chartId: result.chartId,
+        email: result.email ?? userEmail,
+        eventName: "accuracy_rated",
+        entryHook: result.entryHook,
+        metadata: {
+          feedback: result.accuracyFeedback,
+        },
+      });
+    }
 
     return NextResponse.json(result, { status: 200 });
   } catch (err) {

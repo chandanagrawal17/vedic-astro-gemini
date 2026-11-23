@@ -8,6 +8,7 @@ import { SolarShell } from "@/components/ui/SolarShell";
 import { ObsidianCard } from "@/components/ui/ObsidianCard";
 import {
   BirthWindow,
+  CareerMode,
   LocationOption,
   OnboardingInput,
   PrecisionMode,
@@ -56,10 +57,42 @@ const RELATIONSHIP_OPTIONS: {
   },
 ];
 
+const CAREER_OPTIONS: {
+  value: CareerMode;
+  label: string;
+  sub: string;
+}[] = [
+  {
+    value: "employed",
+    label: "9–5 Day Job",
+    sub: "Full-time role inside a company or team",
+  },
+  {
+    value: "employed_hybrid",
+    label: "9–5 + Building on the Side",
+    sub: "Steady paycheck while growing something of your own",
+  },
+  {
+    value: "founder",
+    label: "Founder / Business Owner",
+    sub: "Running your own company, practice, or venture",
+  },
+  {
+    value: "freelance_hybrid",
+    label: "Freelance / Consulting",
+    sub: "Independent client work, advisory, or portfolio career",
+  },
+  {
+    value: "in_transition",
+    label: "Between Roles / Exploring",
+    sub: "Recently stepped away, laid off, or figuring out what's next",
+  },
+];
+
 function OnboardingPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const [step, setStep] = useState<1 | 2>(1);
+  const [step, setStep] = useState<1 | 2 | 3>(1);
 
   // Step 1 state
   const [fullName, setFullName] = useState("");
@@ -74,9 +107,11 @@ function OnboardingPageContent() {
   const [birthWindow, setBirthWindow] = useState<BirthWindow>("morning");
   const [step1Error, setStep1Error] = useState("");
 
-  // Step 2 state
+  // Step 2 & 3 state
   const [relationshipStatus, setRelationshipStatus] =
     useState<RelationshipStatus | null>(null);
+  const [careerMode, setCareerMode] = useState<CareerMode>("employed");
+  const [careerField, setCareerField] = useState("");
 
   const [cityResults, setCityResults] = useState<LocationOption[]>(
     MOCK_CITIES.slice(0, 12)
@@ -172,6 +207,13 @@ function OnboardingPageContent() {
 
   const handleSelectRelationship = (chosenStatus: RelationshipStatus) => {
     setRelationshipStatus(chosenStatus);
+    setTimeout(() => {
+      setStep(3);
+    }, 120);
+  };
+
+  const handleSubmitBlueprint = (e: React.FormEvent) => {
+    e.preventDefault();
 
     const cityObj = selectedCity ?? {
       cityName: cityQuery.trim(),
@@ -195,20 +237,18 @@ function OnboardingPageContent() {
       precisionMode,
       birthTime: precisionMode === "exact" ? birthTime : null,
       birthWindow: precisionMode === "window" ? birthWindow : null,
-      relationshipStatus: chosenStatus,
-      careerMode: "employed",
-      careerField: "",
+      relationshipStatus: relationshipStatus ?? "single",
+      careerMode,
+      careerField: careerField.trim(),
       entryHook: attribution.entryHook,
       utmSource: attribution.utmSource,
     };
 
     createAndSaveSession(payload);
-    setTimeout(() => {
-      router.push("/onboarding/synthesizing");
-    }, 180);
+    router.push("/onboarding/synthesizing");
   };
 
-  const progressPct = step === 1 ? "50%" : "100%";
+  const progressPct = step === 1 ? "33%" : step === 2 ? "66%" : "100%";
 
   return (
     <SolarShell showDisclaimer={true}>
@@ -219,7 +259,8 @@ function OnboardingPageContent() {
             type="button"
             onClick={() => {
               if (step === 1) router.push("/");
-              else setStep(1);
+              else if (step === 2) setStep(1);
+              else setStep(2);
             }}
             className="inline-flex items-center gap-1 text-[13px] text-[#B8A99E] hover:text-[#FDF6EE] transition"
           >
@@ -228,7 +269,7 @@ function OnboardingPageContent() {
           </button>
 
           <span className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[#F5A65B]">
-            Step {step} of 2
+            Step {step} of 3
           </span>
         </div>
 
@@ -494,6 +535,89 @@ function OnboardingPageContent() {
               })}
             </div>
           </div>
+        )}
+
+        {/* STEP 3: Work & Career Context (Option A) */}
+        {step === 3 && (
+          <form
+            onSubmit={handleSubmitBlueprint}
+            className="mt-7 flex-1 flex flex-col"
+          >
+            <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[#F5A65B]">
+              Work &amp; Career Context
+            </p>
+            <h1 className="mt-1.5 font-serif text-[28px] leading-tight text-[#FDF6EE]">
+              What best describes your work chapter right now?
+            </h1>
+            <p className="mt-2 text-[14px] text-[#B8A99E]">
+              This calibrates your Career Fit Audit and 3-path score.
+            </p>
+
+            <div className="mt-5 space-y-2.5">
+              {CAREER_OPTIONS.map((opt) => {
+                const active = careerMode === opt.value;
+                return (
+                  <button
+                    key={opt.value}
+                    type="button"
+                    onClick={() => setCareerMode(opt.value)}
+                    className={`flex w-full items-center justify-between rounded-[20px] border p-3.5 text-left transition active:scale-[0.99] ${
+                      active
+                        ? "border-[#FF6B2B] bg-[#FF6B2B]/15 shadow-[0_0_20px_rgba(255,107,43,0.2)]"
+                        : "border-[#F5A65B]/20 bg-[#1C130E]/75 hover:border-[#F5A65B]/45"
+                    }`}
+                  >
+                    <div>
+                      <div className="text-[14.5px] font-semibold text-[#FDF6EE]">
+                        {opt.label}
+                      </div>
+                      <div className="mt-0.5 text-[12px] text-[#B8A99E]">
+                        {opt.sub}
+                      </div>
+                    </div>
+                    <div
+                      className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full border ${
+                        active
+                          ? "border-[#FF6B2B] bg-[#FF6B2B] text-[#0D0907]"
+                          : "border-[#F5A65B]/25"
+                      }`}
+                    >
+                      {active && <Check className="h-3.5 w-3.5 stroke-[3]" />}
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+
+            <div className="mt-4">
+              <label
+                htmlFor="onboarding-career-field"
+                className="block text-[12px] font-medium text-[#B8A99E]"
+              >
+                Your Field or Role{" "}
+                <span className="text-[#8E7F75]">(optional)</span>
+              </label>
+              <input
+                id="onboarding-career-field"
+                type="text"
+                maxLength={120}
+                value={careerField}
+                onChange={(e) => setCareerField(e.target.value)}
+                placeholder="e.g. Software Engineering, Healthcare, Finance, Design"
+                className="mt-1.5 w-full rounded-xl border border-[#F5A65B]/20 bg-[#120C09] px-3.5 py-3 text-[15px] text-[#FDF6EE] placeholder:text-[#7C6E65] focus:border-[#FF6B2B] focus:outline-none"
+              />
+            </div>
+
+            <div className="mt-6">
+              <button
+                type="submit"
+                className="inline-flex w-full items-center justify-center gap-2 rounded-full py-3.5 px-6 font-sans text-[15px] font-semibold text-[#0D0907] bg-gradient-to-r from-[#FF7E42] to-[#F5A65B] shadow-[0_8px_28px_-6px_rgba(255,107,43,0.5)] active:scale-[0.98] transition"
+              >
+                <span>Generate My Blueprint</span>
+                <ArrowRight className="h-4 w-4" />
+              </button>
+            </div>
+          </form>
         )}
       </div>
     </SolarShell>

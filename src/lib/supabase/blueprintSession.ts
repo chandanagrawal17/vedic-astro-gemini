@@ -86,6 +86,10 @@ interface BlueprintDbRow {
   hook_proof_json: HookProofPayload;
   full_blueprint_json: FullBlueprintPayload;
   accuracy_feedback: HardResetFeedback | null;
+  confirmed_flashpoint_ids?: string[] | null;
+  saved_alternative_lanes?: string[] | null;
+  hard_reset_engine_version?: string | null;
+  career_hook_engine_version?: string | null;
   model_version: string | null;
   is_paid: boolean;
   unlock_tier: "one_time_19" | "annual_39" | null;
@@ -116,6 +120,8 @@ export interface BlueprintApiResponse {
   entryHook: EntryHook | null;
   utmSource: string | null;
   accuracyFeedback: HardResetFeedback | null;
+  confirmedFlashpointIds: string[];
+  savedAlternativeLanes: string[];
   hook_proof_json: HookProofPayload;
   full_blueprint_json: FullBlueprintPayload | null;
   input: OnboardingInput;
@@ -240,6 +246,12 @@ function formatSanitizedResponse(params: {
     entryHook: bp.entry_hook ?? null,
     utmSource: bp.utm_source ?? null,
     accuracyFeedback: bp.accuracy_feedback,
+    confirmedFlashpointIds: Array.isArray(bp.confirmed_flashpoint_ids)
+      ? bp.confirmed_flashpoint_ids
+      : [],
+    savedAlternativeLanes: Array.isArray(bp.saved_alternative_lanes)
+      ? bp.saved_alternative_lanes
+      : [],
     hook_proof_json: bp.hook_proof_json,
     // CRITICAL SERVER-SIDE REDACTION RULE:
     full_blueprint_json: isUnlocked ? bp.full_blueprint_json : null,
@@ -448,7 +460,10 @@ export async function synthesizeAndPersistBlueprint(params: {
     synthesized = await synthesizeBlueprint(
       {
         normalizedChart: chart.normalized_chart_json,
-        profile,
+        profile: {
+          ...profile,
+          dobIso: chart.dob,
+        },
       },
       params.llmProvider
     );
@@ -484,6 +499,8 @@ export async function synthesizeAndPersistBlueprint(params: {
         hook_proof_json: synthesized.payload.hook_proof_json,
         full_blueprint_json: synthesized.payload.full_blueprint_json,
         model_version: synthesized.modelVersion,
+        hard_reset_engine_version: "v2_tiered_yearly_to_monthly",
+        career_hook_engine_version: "v2_friendly_mentor_tiered",
         entry_hook: existingBp.entry_hook ?? resolvedEntryHook,
         utm_source: existingBp.utm_source ?? resolvedUtmSource,
       })
@@ -506,6 +523,8 @@ export async function synthesizeAndPersistBlueprint(params: {
           hook_proof_json: synthesized.payload.hook_proof_json,
           full_blueprint_json: synthesized.payload.full_blueprint_json,
           model_version: synthesized.modelVersion,
+          hard_reset_engine_version: "v2_tiered_yearly_to_monthly",
+          career_hook_engine_version: "v2_friendly_mentor_tiered",
           entry_hook: resolvedEntryHook ?? "direct",
           utm_source: resolvedUtmSource,
         },
@@ -572,14 +591,18 @@ export async function getBlueprintById(params: {
 
 export async function saveBlueprintFeedback(params: {
   chartIdOrToken: string;
-  feedback: HardResetFeedback;
+  feedback?: HardResetFeedback;
+  confirmedFlashpointIds?: string[];
+  savedAlternativeLanes?: string[];
   userId?: string | null;
   userEmail?: string | null;
   sessionToken?: string | null;
   admin?: SupabaseAdminLike;
 }): Promise<{
   ok: true;
-  accuracyFeedback: HardResetFeedback;
+  accuracyFeedback: HardResetFeedback | null;
+  confirmedFlashpointIds: string[];
+  savedAlternativeLanes: string[];
   chartId: string;
   email: string | null;
   entryHook: EntryHook | null;
@@ -592,14 +615,29 @@ export async function saveBlueprintFeedback(params: {
 
   assertOwnership(chart, params.userId, params.sessionToken, params.userEmail);
 
+  const patch: Record<string, unknown> = {};
+  if (params.feedback !== undefined) {
+    patch.accuracy_feedback = params.feedback;
+  }
+  if (params.confirmedFlashpointIds !== undefined) {
+    patch.confirmed_flashpoint_ids = params.confirmedFlashpointIds;
+  }
+  if (params.savedAlternativeLanes !== undefined) {
+    patch.saved_alternative_lanes = params.savedAlternativeLanes;
+  }
+
   const { data: updated, error } = await admin
     .from("blueprints")
-    .update({ accuracy_feedback: params.feedback })
+    .update(patch)
     .eq("chart_id", chart.id)
-    .select("chart_id, accuracy_feedback, email, entry_hook")
+    .select(
+      "chart_id, accuracy_feedback, confirmed_flashpoint_ids, saved_alternative_lanes, email, entry_hook"
+    )
     .maybeSingle<{
       chart_id: string;
-      accuracy_feedback: HardResetFeedback;
+      accuracy_feedback: HardResetFeedback | null;
+      confirmed_flashpoint_ids?: string[] | null;
+      saved_alternative_lanes?: string[] | null;
       email: string | null;
       entry_hook: EntryHook | null;
     }>();
@@ -612,7 +650,13 @@ export async function saveBlueprintFeedback(params: {
   return {
     ok: true,
     chartId: updated.chart_id,
-    accuracyFeedback: updated.accuracy_feedback,
+    accuracyFeedback: updated.accuracy_feedback ?? null,
+    confirmedFlashpointIds: Array.isArray(updated.confirmed_flashpoint_ids)
+      ? updated.confirmed_flashpoint_ids
+      : [],
+    savedAlternativeLanes: Array.isArray(updated.saved_alternative_lanes)
+      ? updated.saved_alternative_lanes
+      : [],
     email: updated.email ?? chart.email ?? null,
     entryHook: updated.entry_hook ?? null,
   };

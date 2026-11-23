@@ -87,9 +87,9 @@ async function runTests() {
     modelVersion: synthA.modelVersion,
     llmCallsMade: synthA.llmCallsMade,
     repairedAfterAudit: synthA.repairedAfterAudit,
-    hook1_hardReset: `${synthA.payload.hook_proof_json.hardReset.window} — ${synthA.payload.hook_proof_json.hardReset.chapterLabel}`,
+    hook1_hardReset: `${synthA.payload.hook_proof_json.hardReset.primaryYearRange} — ${synthA.payload.hook_proof_json.hardReset.primaryChapterTitle}`,
     hook2_relationship: synthA.payload.hook_proof_json.relationship.archetype,
-    hook3_career: `${synthA.payload.hook_proof_json.career.alignmentScore}% (${synthA.payload.hook_proof_json.career.subtitle}) [${synthA.payload.hook_proof_json.career.idealModePill}]`,
+    hook3_career: `${synthA.payload.hook_proof_json.career.currentPathFitScore}% (${synthA.payload.hook_proof_json.career.fitHeadline}) [${synthA.payload.hook_proof_json.career.sweetSpotLabel}]`,
     hook4_selfSabotage: synthA.payload.hook_proof_json.selfSabotage.loopName,
     hook5_eras: `${synthA.payload.hook_proof_json.eras.era1.title} -> ${synthA.payload.hook_proof_json.eras.era2.title} -> ${synthA.payload.hook_proof_json.eras.era3Preview.title} (${synthA.payload.hook_proof_json.eras.era3Preview.percentComplete}%)`,
   });

@@ -123,6 +123,8 @@ export function computeBirthInputHash(input: {
   return createHash("sha256").update(canonical).digest("hex");
 }
 
+export const BLUEPRINT_ENGINE_VERSION = "v2_hr_career_tiered";
+
 export function computeContextHash(input: {
   firstName: string;
   relationshipStatus: RelationshipStatus;
@@ -130,6 +132,7 @@ export function computeContextHash(input: {
   careerField?: string | null;
 }): string {
   const canonical = [
+    BLUEPRINT_ENGINE_VERSION,
     input.firstName.trim().toLowerCase(),
     input.relationshipStatus.trim().toLowerCase(),
     input.careerMode.trim().toLowerCase(),

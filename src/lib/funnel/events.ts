@@ -19,6 +19,8 @@ export const FUNNEL_EVENT_VALUES = [
   "chart_calculated",
   "proof_viewed",
   "accuracy_rated",
+  "clicked_locked_monthly_timeline",
+  "clicked_locked_career_blueprint",
   "paywall_viewed",
   "paywall_cta_clicked",
   "beta_unlocked",

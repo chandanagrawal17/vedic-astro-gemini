@@ -10,7 +10,15 @@ const ClaimSchema = z.object({
     .enum(["single", "relationship", "married", "shifting"])
     .optional(),
   careerMode: z
-    .enum(["employed", "founder", "freelance", "transition"])
+    .enum([
+      "employed",
+      "employed_hybrid",
+      "founder",
+      "freelance_hybrid",
+      "in_transition",
+      "freelance",
+      "transition",
+    ])
     .optional(),
   careerField: z.string().max(120).optional(),
 });

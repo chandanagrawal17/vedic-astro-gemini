@@ -13,6 +13,8 @@ const ClientFunnelEventNameSchema = z.enum([
   "landing_view",
   "onboarding_started",
   "proof_viewed",
+  "clicked_locked_monthly_timeline",
+  "clicked_locked_career_blueprint",
   "paywall_viewed",
   "paywall_cta_clicked",
   "brag_card_shared",

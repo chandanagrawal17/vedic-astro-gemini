@@ -93,38 +93,82 @@ export function buildMockBlueprint(
   const isExact = input.precisionMode === "exact";
   const fieldLabel = input.careerField.trim() || "your current field";
 
-  const resetWindow = isExact ? "2021 – 2023" : "2021 – 2023 (approx.)";
-  const era1Dates = isExact ? "2016 – 2019" : "2016 – 2019";
-  const era2Dates = isExact ? "2020 – 2023" : "2020 – 2023";
+  const resetWindow = "2022 – 2023";
+  const era1Dates = "2016 – 2019";
+  const era2Dates = "2020 – 2023";
   const era3Dates = isExact ? "Jan 2024 – Apr 2027" : "2024 – 2027";
   const era4Dates = isExact ? "May 2027 – 2030" : "2027 – 2030";
 
+  const isTransition =
+    input.careerMode === "in_transition" || input.careerMode === "transition";
+
   const careerScoreMap: Record<OnboardingInput["careerMode"], number> = {
-    employed: 64,
-    founder: 78,
-    freelance: 72,
-    transition: 54,
+    employed: 60,
+    employed_hybrid: 63,
+    founder: 72,
+    freelance_hybrid: 86,
+    freelance: 86,
+    in_transition: 63,
+    transition: 63,
   };
 
-  const careerSubtitleMap: Record<OnboardingInput["careerMode"], string> = {
-    employed: "High Stamina, Low Fulfillment",
-    founder: "High Vision, Scattered Ops",
-    freelance: "Strong Autonomy, Cap on Scale",
-    transition: "Outgrown Shell, Ready to Pivot",
+  const careerHeadlineMap: Record<OnboardingInput["careerMode"], string> = {
+    employed: "Great at the job, hungry for something deeper",
+    employed_hybrid: "Great at the job, hungry for something deeper",
+    founder: "Built to own outcomes, careful not to carry it all alone",
+    freelance_hybrid: "Strong autonomy, ready for repeatable leverage",
+    freelance: "Strong autonomy, ready for repeatable leverage",
+    in_transition: "Why your last chapter felt outgrown",
+    transition: "Why your last chapter felt outgrown",
   };
 
-  const idealModeMap: Record<OnboardingInput["careerMode"], string> = {
-    employed: "Systems Architect",
-    founder: "Independent Strategist",
-    freelance: "Bridge-Builder",
-    transition: "Autonomous Operator",
+  const sweetSpotMap: Record<OnboardingInput["careerMode"], string> = {
+    employed: "Problem-Solver → Builder of Your Own Thing",
+    employed_hybrid: "Problem-Solver → Builder of Your Own Thing",
+    founder: "Systems Builder → Focused Independent Owner",
+    freelance_hybrid: "Trusted Advisor → Repeatable Product Builder",
+    freelance: "Trusted Advisor → Repeatable Product Builder",
+    in_transition: "Sharp Fixer → Autonomous People-Focused Builder",
+    transition: "Sharp Fixer → Autonomous People-Focused Builder",
   };
 
   const freePayload: BlueprintFreePayload = {
     hardReset: {
-      window: resetWindow,
-      chapterLabel: "The Structural Stripping",
-      description: `Between ${resetWindow}, you were forced to dismantle an identity, role, or expectation that looked stable on paper but felt quietly suffocating. You likely carried heavy responsibility behind closed doors while questioning who you were without external validation.`,
+      primaryYearRange: resetWindow,
+      primaryChapterTitle: "The Identity Overhaul & Honesty Test",
+      introHook: `${name}, between ${resetWindow}, going through the motions stopped working—forcing a sharper look at what you actually want to build.`,
+      concreteRealLifeThemes: [
+        "A sharp shift from enduring the grind to feeling caged inside conventional boxes—sparking an intense urge to build something genuinely yours.",
+        "A truth-serum stretch in close one-on-one bonds where polite autopilot stopped working, forcing sudden detachment, a blunt honesty talk, or a firm boundary.",
+        "High-speed ambition colliding with domestic restlessness, leaving your mind swinging between intense sprints and abrupt mental exhaustion.",
+      ],
+      whatItRewired:
+        "You walked out with a calibrated radar for hollow commitments and a fierce refusal to waste energy on misaligned rooms.",
+      secondaryYearWindow: {
+        yearRange: "2020 – 2021",
+        chapterTitle: "The Heavy Career & Home Squeeze",
+        oneLineSnapshot:
+          "Long hours in an under-leveraged role colliding with domestic restlessness and personal pressure.",
+      },
+      lockedMonthlyTimelineTeaser: {
+        totalLockedFlashpoints: 9,
+        lockedChaptersSpan: "2014 – 2023",
+        previewItems: [
+          { id: "fp_2022_01", yearLabel: "2022", title: "The Boiling Point" },
+          {
+            id: "fp_2022_02",
+            yearLabel: "2022",
+            title: "The Relationship Truth Serum",
+          },
+          {
+            id: "fp_2023_01",
+            yearLabel: "2023",
+            title: "Big Vision vs. Domestic Unrest",
+          },
+        ],
+        paywallCtaLine:
+          "Unlock all 9 exact 1-to-3-month flashpoints across 2014–2023 plus the exact months of your next pressure window.",
+      },
     },
     relationship: isPartnered
       ? {
@@ -138,9 +182,25 @@ export function buildMockBlueprint(
           teaserBadge: "1 Core Attraction Pattern Trigger Detected",
         },
     career: {
-      alignmentScore: careerScoreMap[input.careerMode],
-      subtitle: careerSubtitleMap[input.careerMode],
-      idealModePill: idealModeMap[input.careerMode],
+      currentPathFitScore: careerScoreMap[input.careerMode],
+      fitHeadline: careerHeadlineMap[input.careerMode],
+      sweetSpotLabel: sweetSpotMap[input.careerMode],
+      whyYouAreGood:
+        "Honestly, you're the person everyone turns to when things get messy. Drop you into a broken setup or a stressful deadline, and your brain clicks into gear—you spot what's wrong and fix it faster than almost anyone else in the room.",
+      whyItFeelsEmptyOrShifting: isTransition
+        ? "Your last chapter ran its course because you outgrew pouring all that problem-solving grit into someone else's machine. You don't hate hard work—you just want your next move to belong to you and actually help real people."
+        : "You have the grit to crush a tough 9–5, and weirdly, that's your trap. You don't hate hard work—you're just getting tired of pouring all that energy into someone else's machine without feeling like it truly helps people or belongs to you.",
+      howWorkSeesYou:
+        "Inside your head, you think like a builder who wants room to create something meaningful. On the outside, coworkers mostly see an intense, dependable firefighter—so they keep handing you messy cleanup jobs instead of real ownership.",
+      lockedTeaser: {
+        fieldAuditQuestion: input.careerField.trim()
+          ? `Does ${fieldLabel} really fit you?`
+          : "Does your current track really fit you?",
+        alternativeLanesCount: 4,
+        timingYearLabel: "2027",
+        paywallCtaLine:
+          "Unlock your 3-path score breakdown, 4 hidden alternative lanes, and your best months ahead.",
+      },
     },
     selfSabotage: {
       loopName: "The Urgency Loop",
@@ -170,16 +230,85 @@ export function buildMockBlueprint(
         percentComplete: 64,
       },
     },
+    upgrade_hint: isExact
+      ? null
+      : "Add your exact birth time anytime to sharpen your workplace perception and monthly timing windows for free.",
   };
 
   const paidPayload: BlueprintPaidPayload = {
     hardReset: {
-      deepBreakdown: `Your ${resetWindow} stretch was never meant to be comfortable—it was a compression phase designed to strip away borrowed goals. Every time you tried to rely on charm, speed, or sheer overwork to bypass a bottleneck, the environment forced you to slow down and build real boundaries.`,
-      resilienceBuilt:
-        "You walked out of that window with a calibrated BS detector and the ability to stay composed when plans collapse. You no longer confuse busyness with traction.",
-      nextPressureWindow: isExact ? "Late 2028 – Mid 2029" : "2028 – 2029",
-      preparationNote:
-        "Unlike the last reset, this upcoming audit rewards what you have already systematized. Document your decision rules now so you don't carry every problem alone later.",
+      chapters: [
+        {
+          chapterId: "ch_2022_2023",
+          yearRange: "2022 – 2023",
+          chapterTitle: "The Identity Overhaul & Honesty Test",
+          flashpoints: [
+            {
+              id: "fp_2022_01",
+              monthRange: "Late June – early Aug 2022",
+              title: "The Boiling Point",
+              realLifeEvent:
+                "Impatience with autopilot routines spiked hard—making conventional expectations feel suffocating and triggering a shorter fuse when people moved too slowly.",
+            },
+            {
+              id: "fp_2022_02",
+              monthRange: "Late Oct – Nov 2022",
+              title: "The Relationship Truth Serum",
+              realLifeEvent:
+                "Illusions dropped fast in a close one-on-one bond—triggering either sudden emotional detachment, a make-or-break honesty talk, or drawing a firm boundary.",
+            },
+            {
+              id: "fp_2023_01",
+              monthRange: "May – June 2023",
+              title: "Big Vision vs. Domestic Unrest",
+              realLifeEvent:
+                "An unconventional ambition surge collided with unsettled energy at home, making it tough to switch off your brain at night.",
+            },
+          ],
+          howItFeltInside:
+            "A racing mind that refused to idle, sharper impatience spikes, and classic sprint-and-crash fatigue whenever you pushed too hard without recovery.",
+          whatItRewired:
+            "You earned fierce clarity around self-respect and autonomy—just watch the leftover reflex to assume you have to fight every battle alone.",
+        },
+        {
+          chapterId: "ch_2020_2021",
+          yearRange: "2020 – 2021",
+          chapterTitle: "The Heavy Career & Home Squeeze",
+          flashpoints: [
+            {
+              id: "fp_2020_01",
+              monthRange: "Late Mar – early May 2020",
+              title: "Sudden Heavy Load",
+              realLifeEvent:
+                "Responsibility piled up overnight under rigid constraints, forcing you to hold everything together while personal bandwidth shrank.",
+            },
+            {
+              id: "fp_2021_01",
+              monthRange: "Sept – Nov 2021",
+              title: "Grind Bleeding Into Home",
+              realLifeEvent:
+                "Daily firefighting and peer friction spilled over into personal life, testing whether your schedule left room for real connection.",
+            },
+          ],
+          howItFeltInside:
+            "Quiet mental burnout and late-night overthinking—replaying work problems in bed long after the laptop closed.",
+          whatItRewired:
+            "You proved you can stay composed under heavy pressure, but the leftover habit is mistaking exhaustion for proof that you're doing enough.",
+        },
+      ],
+      corePatternThread:
+        "Across these chapters, life kept pruning borrowed goals and quiet people-pleasing so you'd finally trust your own standards and build on solid ground.",
+      nextPressureWindow: {
+        monthRange: "June – Aug 2027",
+        windowTitle: "The Foundation Stress-Test",
+        whatToExpect:
+          "A serious accountability checkpoint that strips away distractions and rewards whatever habits, cash buffers, and systems you've already locked in.",
+        prepMoves: [
+          "Keep a calm 6-month cash cushion before taking on major fixed expenses.",
+          "Prune low-value side commitments early so your top bet gets clean focus.",
+          "Lock in a non-negotiable evening shutdown to protect sleep and nerves.",
+        ],
+      },
     },
     relationship: isPartnered
       ? {
@@ -207,23 +336,120 @@ export function buildMockBlueprint(
             : "Next 9 Months · High-Clarity Connection Window",
         },
     career: {
-      verdictBadge:
-        input.careerMode === "founder"
-          ? "Focused Operator"
-          : "Hybrid Builder → Autonomous Lead",
-      jobVsBusinessVerdict:
-        "You thrive best with high decision autonomy and visible ownership of outcomes. Purely bureaucratic roles drain your edge, while pure solo chaos burns your nervous system—you win as a lead architect or focused founder with clean operational support.",
-      currentFieldMatch: `In ${fieldLabel}, your natural pattern excels at diagnosing messy systems and turning ambiguity into a repeatable playbook. Where you lose energy is endless consensus-building or executing tasks you have already mastered.`,
-      dutyVsPurposeGap:
-        "Right now, part of your stamina goes toward proving reliability in rooms that don't stretch your actual ceiling. Shifting even 20% of your week toward high-leverage strategy closes that gap fast.",
-      timingPosture:
-        "The next 12 months strongly favor building durable systems, raising your rates or scope, and consolidating leverage in place—rather than making an impulsive, unbacked leap.",
+      pathComparison: [
+        {
+          pathKey: "day_job",
+          pathLabel: "Sticking Purely to a 9–5",
+          fitScore: 60,
+          isRecommended: false,
+          honestMentorTake:
+            "You're plenty capable of succeeding inside a structured company, and the steady paycheck keeps stress low. The catch is that rigid politics and slow approvals will quietly wear down your spark over time.",
+        },
+        {
+          pathKey: "going_solo",
+          pathLabel: "Quitting Cold Turkey / Full Solo Leap",
+          fitScore: 72,
+          isRecommended: false,
+          honestMentorTake:
+            "You genuinely have the drive and client sense to run your own show. Jumping with zero safety net right now, though, puts unnecessary pressure on your nerves and tempts you to over-tinker instead of shipping.",
+        },
+        {
+          pathKey: "hybrid_side_build",
+          pathLabel: isTransition
+            ? "Steady Income / Consulting + Building Your Own Thing"
+            : "Building on the Side First",
+          fitScore: 91,
+          isRecommended: true,
+          honestMentorTake: isTransition
+            ? "Pairing a clean, steady role or consulting income with your own focused side project protects your cash cushion while giving your builder side room to breathe. Once real paying customers show up, you can scale on your own terms."
+            : "Keeping your steady base while shipping a lean side project on evenings or weekends is your clear sweet spot right now. It protects your cash cushion, kills panic decisions, and lets real paying users prove the idea first.",
+        },
+      ],
+      fieldAudit: {
+        statedFieldLabel: input.careerField.trim() || "Your Current Track",
+        whatFitsLikeAGlove:
+          "You shine whenever a role asks you to untangle messy problems, bring order to chaos, and build clean, dependable systems that actually work.",
+        whatIsMissing:
+          "What's quietly draining you is too much behind-the-scenes maintenance with too little direct human connection, creative ownership, or visible upside.",
+        yourBestNextStep:
+          "Don't blow up your hard-earned skills—bridge them into something people-facing where you guide real humans or own a small, focused product of your own.",
+      },
+      hiddenAlternativeLanes: [
+        {
+          laneId: "holistic_health_wellness_performance",
+          laneName: "Holistic Health, Burnout Coaching & Performance",
+          whyItFitsYou:
+            "Your sharp diagnostic eye pairs naturally with helping high-achievers fix sleep, stress, nutrition, and sustainable daily routines.",
+        },
+        {
+          laneId: "strategy_consulting_turnarounds",
+          laneName: "Advisory & Operations Turnarounds",
+          whyItFitsYou:
+            "You spot bottlenecks in minutes—making you a natural independent troubleshooter for founders who need calm, clear systems.",
+        },
+        {
+          laneId: "partnerships_deals_consumer_brands",
+          laneName: "Partnerships, Deal-Making & Curated Brands",
+          whyItFitsYou:
+            "You have strong taste and relational instincts when you're building real win-win partnerships rather than pushing cold scripts.",
+        },
+        {
+          laneId: "mentoring_teaching_media",
+          laneName: "Coaching, Writing & Practical Education",
+          whyItFitsYou:
+            "You have a knack for translating complicated subjects into plain, honest guidance that everyday people can actually use.",
+        },
+      ],
+      perceptionGap: {
+        insideYourHead:
+          "You think like an independent architect who wants meaningful ownership, honest conversations, and room to build things right.",
+        whatCoworkersSee:
+          "People around you often see an intense, ultra-capable crisis fixer who gets impatient with slow red tape.",
+        simpleShiftToTry:
+          "Stop quietly volunteering for invisible cleanup jobs—claim one visible outcome each quarter and communicate your thinking calmly before frustration builds.",
+      },
+      moneyAndLeaks: {
+        howMoneyGrowsForYou:
+          "Your wealth compounds steadily through durable reputation, repeatable products or advisory retainers, and long-term trust—not flashy overnight bets.",
+        quietHabitCostingYou:
+          "Over-polishing in private before charging real money, or staying a year too long in safe rooms that under-use your real ceiling.",
+      },
+      next12Months: {
+        bigPictureSummary:
+          "Treat the next six months as your quiet workshop: protect your cash runway, avoid impulsive leaps, and ship small real-world tests to actual people.",
+        tightMonthlyWindows: [
+          {
+            id: "cw_01",
+            monthRange: "Dec 2026 – Jan 2027",
+            windowTitle: "Great Time to Put It Out There",
+            practicalGuidance:
+              "Your clarity and messaging click here—ship a simple first version to real users or reach out to warm contacts instead of polishing in private.",
+          },
+          {
+            id: "cw_02",
+            monthRange: "Mar – May 2027",
+            windowTitle: "Watch Your Patience Under Friction",
+            practicalGuidance: isTransition
+              ? "Slow recruiters or drawn-out interviews could test your patience here—don't settle for a panic role out of frustration, and keep leaning on warm intros."
+              : "Office politics or slow managers will test your patience more than usual here—stay cool, get agreements in writing, and channel that heat into your own build.",
+          },
+          {
+            id: "cw_03",
+            monthRange: "June – Aug 2027",
+            windowTitle: "Serious Focus Chapter Begins",
+            practicalGuidance:
+              "A grounded two-year accountability chapter kicks off—prune distractions and double down on the one offer or lane bringing real traction.",
+          },
+        ],
+        mindBodyPacingTip:
+          "Your mind runs hot and fast when you care deeply—set a hard 9:30 PM screen shutdown and a short walk after work so sprints don't turn into burnout.",
+      },
     },
     selfSabotage: {
       triggerMapLove:
         "When a dynamic feels uncertain, you rush to force a 'define-the-moment' conversation just to relieve the tension of not knowing—even when patience would give you better data.",
       triggerMapCareer:
-        "You say yes to tight timelines or over-polish deliverables past the point of diminishing returns because slowing down feels momentarily like falling behind.",
+        "You say yes to tight timelines or over-polish your work past the point of diminishing returns because slowing down feels momentarily like falling behind.",
       antidoteSteps: [
         "Apply the 24-Hour Pause Rule: whenever an urge feels like an emergency, write the message or decision down and wait one full sleep cycle before sending.",
         "Down-regulate physically first: 90 seconds of slow nasal exhales (4s in, 6s out) before responding to high-stakes friction.",
@@ -254,6 +480,8 @@ export function buildMockBlueprint(
     freePayload,
     paidPayload,
     hardResetFeedback: null,
+    confirmedFlashpointIds: [],
+    savedAlternativeLanes: [],
     isUnlocked: false,
     unlockTier: null,
     reflections: [],

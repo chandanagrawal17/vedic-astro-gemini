@@ -53,6 +53,8 @@ export function saveSynthesizedSession(
     utmSource?: string | null;
     moonBoundaryFlag?: boolean;
     hardResetFeedback?: HardResetFeedback | null;
+    confirmedFlashpointIds?: string[];
+    savedAlternativeLanes?: string[];
     modelVersion?: string | null;
   }
 ): BlueprintSession {
@@ -73,6 +75,14 @@ export function saveSynthesizedSession(
       payload.hardResetFeedback !== undefined
         ? payload.hardResetFeedback
         : existing?.hardResetFeedback ?? null,
+    confirmedFlashpointIds:
+      payload.confirmedFlashpointIds !== undefined
+        ? payload.confirmedFlashpointIds
+        : existing?.confirmedFlashpointIds ?? [],
+    savedAlternativeLanes:
+      payload.savedAlternativeLanes !== undefined
+        ? payload.savedAlternativeLanes
+        : existing?.savedAlternativeLanes ?? [],
     isUnlocked:
       payload.isUnlocked !== undefined
         ? payload.isUnlocked
@@ -156,6 +166,22 @@ export function updateSessionFeedback(
   const updated: BlueprintSession = {
     ...current,
     hardResetFeedback: feedback,
+  };
+  saveSession(updated);
+  return updated;
+}
+
+export function updateSessionBookmarks(patch: {
+  confirmedFlashpointIds?: string[];
+  savedAlternativeLanes?: string[];
+}): BlueprintSession {
+  const current = loadSession();
+  const updated: BlueprintSession = {
+    ...current,
+    confirmedFlashpointIds:
+      patch.confirmedFlashpointIds ?? current.confirmedFlashpointIds ?? [],
+    savedAlternativeLanes:
+      patch.savedAlternativeLanes ?? current.savedAlternativeLanes ?? [],
   };
   saveSession(updated);
   return updated;

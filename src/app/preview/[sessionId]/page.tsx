@@ -5,7 +5,6 @@ import { useParams, useRouter, useSearchParams } from "next/navigation";
 import {
   ArrowLeft,
   ArrowRight,
-  Flame,
   Lock,
   RotateCcw,
   Share2,
@@ -13,12 +12,13 @@ import {
 } from "lucide-react";
 import { SolarShell } from "@/components/ui/SolarShell";
 import { ObsidianCard } from "@/components/ui/ObsidianCard";
-import { AccuracyCheck } from "@/components/blueprint/AccuracyCheck";
 import { BragCardModal } from "@/components/blueprint/BragCardModal";
+import { CareerFreeSection } from "@/components/blueprint/CareerSections";
+import { HardResetFreeSection } from "@/components/blueprint/HardResetSections";
 import { LifeChaptersArc } from "@/components/blueprint/LifeChaptersArc";
-import { AlignmentMeter } from "@/components/blueprint/AlignmentMeter";
 import { LockedInsightCard } from "@/components/blueprint/LockedInsightCard";
 import { SoftAuthModal } from "@/components/blueprint/SoftAuthModal";
+import { normalizeFreePayloadForUi } from "@/lib/blueprint/normalizePayload";
 import { trackFunnelEvent } from "@/lib/store/attributionStore";
 import {
   BlueprintFreePayload,
@@ -286,7 +286,30 @@ export default function PreviewSessionPage() {
     return <PreviewLoadingSkeleton />;
   }
 
-  const { freePayload, input } = session;
+  const freePayload = normalizeFreePayloadForUi(session.freePayload);
+  const { input } = session;
+
+  const handleLockedMonthlyClick = () => {
+    trackFunnelEvent({
+      eventName: "clicked_locked_monthly_timeline",
+      chartId: session.chartId,
+      sessionToken: session.sessionToken ?? session.sessionId,
+      email: session.input.email,
+      entryHook: session.entryHook ?? session.input.entryHook ?? null,
+    });
+    setAuthModalOpen(true);
+  };
+
+  const handleLockedCareerClick = () => {
+    trackFunnelEvent({
+      eventName: "clicked_locked_career_blueprint",
+      chartId: session.chartId,
+      sessionToken: session.sessionToken ?? session.sessionId,
+      email: session.input.email,
+      entryHook: session.entryHook ?? session.input.entryHook ?? null,
+    });
+    setAuthModalOpen(true);
+  };
 
   const handleFeedback = (val: HardResetFeedback) => {
     const updated = updateSessionFeedback(val);
@@ -341,36 +364,24 @@ export default function PreviewSessionPage() {
           </span>
         </div>
 
+        {/* Precision Mode Hint (when birth time is missing) */}
+        {freePayload.upgrade_hint && (
+          <div className="mt-4 rounded-2xl border border-[#F5A65B]/25 bg-[#1C130E]/80 px-3.5 py-2.5 text-[12px] leading-relaxed text-[#D9CEC5]">
+            <span className="font-semibold text-[#F5A65B]">Precision Note: </span>
+            {freePayload.upgrade_hint}
+          </div>
+        )}
+
         {/* PROOF SCREEN 1 */}
         {activeStep === 1 && (
           <div className="mt-5 space-y-4">
-            {/* Hero Card: Hard Reset Pinpoint */}
-            <ObsidianCard warmTint>
-              <div className="flex items-center gap-2.5">
-                <div className="flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-br from-[#F5A65B] to-[#C8420E] shadow-[0_0_18px_rgba(255,107,43,0.45)]">
-                  <Flame className="h-4 w-4 text-[#0D0907]" />
-                </div>
-                <span className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[#F5A65B]">
-                  The Hard Reset Pinpoint
-                </span>
-              </div>
-
-              <div className="mt-4 font-serif text-[36px] leading-none tracking-[-0.01em] text-[#FDF6EE]">
-                {freePayload.hardReset.window}
-              </div>
-              <p className="mt-1.5 font-serif text-[20px] italic text-[#F5A65B]">
-                {freePayload.hardReset.chapterLabel}
-              </p>
-
-              <p className="mt-3 text-[15px] leading-[1.6] text-[#D9CEC5]">
-                {freePayload.hardReset.description}
-              </p>
-
-              <AccuracyCheck
-                initialValue={session.hardResetFeedback}
-                onSelect={handleFeedback}
-              />
-            </ObsidianCard>
+            {/* Hero Card: Hard Reset Pinpoint + Locked Tight Monthly Timeline */}
+            <HardResetFreeSection
+              hardReset={freePayload.hardReset}
+              feedback={session.hardResetFeedback}
+              onSelectFeedback={handleFeedback}
+              onLockedTimelineClick={handleLockedMonthlyClick}
+            />
 
             {/* Card 2: Your Last 10 Years in 3 Eras */}
             <ObsidianCard>
@@ -423,28 +434,15 @@ export default function PreviewSessionPage() {
               />
             </ObsidianCard>
 
-            {/* Card 2: Career Alignment Audit */}
-            <ObsidianCard>
-              <div className="flex items-center justify-between gap-2">
-                <span className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[#F5A65B]">
-                  Career Alignment Audit
-                </span>
-                <span className="rounded-full bg-[#FF6B2B]/15 border border-[#FF6B2B]/35 px-2.5 py-0.5 text-[11px] font-semibold text-[#FDF6EE]">
-                  {freePayload.career.idealModePill}
-                </span>
-              </div>
-
-              <AlignmentMeter
-                score={freePayload.career.alignmentScore}
-                subtitle={freePayload.career.subtitle}
-              />
-
-              <LockedInsightCard
-                eyebrow="Career Verdict"
-                headline="Full Job vs. Business Verdict & Role Match Locked"
-                onUnlockClick={() => setAuthModalOpen(true)}
-              />
-            </ObsidianCard>
+            {/* Card 2: Career & Path Audit (Free Fit Teaser + Locked Career Guide) */}
+            <CareerFreeSection
+              career={freePayload.career}
+              isTransition={
+                input.careerMode === "in_transition" ||
+                input.careerMode === "transition"
+              }
+              onLockedCareerClick={handleLockedCareerClick}
+            />
 
             {/* Card 3: Relationship Mirror */}
             <ObsidianCard>

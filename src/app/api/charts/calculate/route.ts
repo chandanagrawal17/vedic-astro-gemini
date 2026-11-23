@@ -38,7 +38,15 @@ const CalculateChartSchema = z.object({
     .optional()
     .default("single"),
   careerMode: z
-    .enum(["employed", "founder", "freelance", "transition"])
+    .enum([
+      "employed",
+      "employed_hybrid",
+      "founder",
+      "freelance_hybrid",
+      "in_transition",
+      "freelance",
+      "transition",
+    ])
     .optional()
     .default("employed"),
   careerField: z.string().max(120).optional().default(""),

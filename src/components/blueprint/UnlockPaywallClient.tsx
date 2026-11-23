@@ -33,11 +33,11 @@ import {
 } from "@/lib/types/blueprint";
 
 const REPORT_CHECKLIST = [
-  "Hard Reset Deep Breakdown & Next Pressure Window",
+  "Tight 1-to-3-Month Hard Reset Timeline — exact peak pressure months across your last 10+ years + your exact upcoming prep months",
+  "Full Career Guide — 3-path fit scores (9–5 vs. Solo vs. Side Build), field audit, hidden alternative lanes & next 12 months",
+  "Relationship Alignment, Silent Friction Pattern & 2 Practical Communication Shifts",
+  "Self-Sabotage Trigger Map & 3-Step Grounded Antidote",
   "Era 3 Current Playbook & Era 4 Preview",
-  "Job vs. Business Verdict & 12-Month Timing Posture",
-  "Relationship Alignment, Silent Friction & 2 Shifts",
-  "Self-Sabotage Trigger Map & 3-Step Practical Antidote",
 ];
 
 interface UnlockPaywallClientProps {

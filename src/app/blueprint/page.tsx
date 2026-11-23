@@ -3,9 +3,7 @@
 import React, { Suspense, useCallback, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import {
-  Briefcase,
   Clock,
-  Flame,
   Heart,
   Lock,
   Plus,
@@ -19,8 +17,13 @@ import { SolarShell } from "@/components/ui/SolarShell";
 import { ObsidianCard } from "@/components/ui/ObsidianCard";
 import { SolarOrbHero } from "@/components/ui/SolarOrbHero";
 import { BragCardModal } from "@/components/blueprint/BragCardModal";
+import { CareerPaidSection } from "@/components/blueprint/CareerSections";
+import { HardResetPaidSection } from "@/components/blueprint/HardResetSections";
 import { LifeChaptersArc } from "@/components/blueprint/LifeChaptersArc";
-import { AlignmentMeter } from "@/components/blueprint/AlignmentMeter";
+import {
+  normalizeFreePayloadForUi,
+  normalizePaidPayloadForUi,
+} from "@/lib/blueprint/normalizePayload";
 import {
   BlueprintFreePayload,
   BlueprintPaidPayload,
@@ -36,6 +39,7 @@ import {
   loadSession,
   loadStoredSession,
   saveSynthesizedSession,
+  updateSessionBookmarks,
 } from "@/lib/store/sessionStore";
 import { DEFAULT_ONBOARDING_INPUT } from "@/lib/mock/blueprintMock";
 
@@ -62,6 +66,8 @@ interface BlueprintApiResponse {
   entryHook?: EntryHook | null;
   utmSource?: string | null;
   accuracyFeedback?: HardResetFeedback | null;
+  confirmedFlashpointIds?: string[];
+  savedAlternativeLanes?: string[];
   hook_proof_json: BlueprintFreePayload;
   full_blueprint_json: BlueprintPaidPayload | null;
   input?: OnboardingInput;
@@ -147,6 +153,8 @@ function BlueprintHubContent() {
           utmSource: data.utmSource,
           moonBoundaryFlag: data.moonBoundaryFlag,
           hardResetFeedback: data.accuracyFeedback,
+          confirmedFlashpointIds: data.confirmedFlashpointIds,
+          savedAlternativeLanes: data.savedAlternativeLanes,
           modelVersion: data.modelVersion,
         }
       );
@@ -210,7 +218,9 @@ function BlueprintHubContent() {
     return <BlueprintLoadingSkeleton />;
   }
 
-  const { input, freePayload, paidPayload, reflections } = session;
+  const { input, reflections } = session;
+  const freePayload = normalizeFreePayloadForUi(session.freePayload);
+  const paidPayload = normalizePaidPayloadForUi(session.paidPayload);
 
   // Enforce paywall state: if server redacted full_blueprint_json, never show mock data
   if (!paidPayload) {
@@ -255,6 +265,43 @@ function BlueprintHubContent() {
     setSession(updated);
     setNoteInput("");
     setDrawerOpen(false);
+  };
+
+  const persistBookmarks = (patch: {
+    confirmedFlashpointIds?: string[];
+    savedAlternativeLanes?: string[];
+  }) => {
+    const updated = updateSessionBookmarks(patch);
+    setSession(updated);
+    const targetId = session.chartId ?? session.sessionId;
+    if (targetId && targetId !== "demo-session") {
+      fetch(`/api/blueprint/${encodeURIComponent(targetId)}/feedback`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          ...patch,
+          sessionToken: session.sessionToken ?? session.sessionId,
+        }),
+      }).catch(() => {
+        // Non-blocking background persistence
+      });
+    }
+  };
+
+  const handleToggleFlashpoint = (flashpointId: string) => {
+    const existing = session.confirmedFlashpointIds ?? [];
+    const next = existing.includes(flashpointId)
+      ? existing.filter((id) => id !== flashpointId)
+      : [...existing, flashpointId];
+    persistBookmarks({ confirmedFlashpointIds: next });
+  };
+
+  const handleToggleAlternativeLane = (laneId: string) => {
+    const existing = session.savedAlternativeLanes ?? [];
+    const next = existing.includes(laneId)
+      ? existing.filter((id) => id !== laneId)
+      : [...existing, laneId];
+    persistBookmarks({ savedAlternativeLanes: next });
   };
 
   const handleRefreshBirthTime = async (e: React.FormEvent) => {
@@ -420,49 +467,14 @@ function BlueprintHubContent() {
           })}
         </div>
 
-        {/* TAB 1: OVERVIEW (Hard Reset Deep Dive + Quick Snapshot) */}
+        {/* TAB 1: OVERVIEW (Full Tight Monthly Hard Reset Timeline) */}
         {activeTab === "overview" && (
-          <div className="mt-5 space-y-4">
-            <ObsidianCard warmTint>
-              <div className="flex items-center gap-2">
-                <Flame className="h-4 w-4 text-[#FF6B2B]" />
-                <span className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[#F5A65B]">
-                  Hard Reset Deep Breakdown
-                </span>
-              </div>
-
-              <div className="mt-3 font-serif text-[30px] leading-none text-[#FDF6EE]">
-                {freePayload.hardReset.window}
-              </div>
-              <p className="mt-1 font-serif text-[18px] italic text-[#F5A65B]">
-                {freePayload.hardReset.chapterLabel}
-              </p>
-
-              <p className="mt-3 text-[15px] leading-[1.6] text-[#D9CEC5]">
-                {paidPayload.hardReset.deepBreakdown}
-              </p>
-
-              <div className="mt-4 rounded-2xl border border-[#F5A65B]/15 bg-[#120C09]/80 p-4">
-                <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[#4ADE80]">
-                  Permanent Resilience Built
-                </p>
-                <p className="mt-1.5 text-[14px] leading-relaxed text-[#D9CEC5]">
-                  {paidPayload.hardReset.resilienceBuilt}
-                </p>
-              </div>
-            </ObsidianCard>
-
-            <ObsidianCard>
-              <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[#F5A65B]">
-                Next Pressure-Test Window
-              </p>
-              <h3 className="mt-1.5 font-serif text-[22px] text-[#FDF6EE]">
-                {paidPayload.hardReset.nextPressureWindow}
-              </h3>
-              <p className="mt-2 text-[14px] leading-relaxed text-[#D9CEC5]">
-                {paidPayload.hardReset.preparationNote}
-              </p>
-            </ObsidianCard>
+          <div className="mt-5">
+            <HardResetPaidSection
+              hardReset={paidPayload.hardReset}
+              confirmedFlashpointIds={session.confirmedFlashpointIds ?? []}
+              onToggleFlashpoint={handleToggleFlashpoint}
+            />
           </div>
         )}
 
@@ -530,71 +542,15 @@ function BlueprintHubContent() {
           </div>
         )}
 
-        {/* TAB 3: CAREER */}
+        {/* TAB 3: CAREER (Full Career Guide) */}
         {activeTab === "career" && (
-          <div className="mt-5 space-y-4">
-            <ObsidianCard>
-              <div className="flex items-center justify-between gap-2">
-                <div className="flex items-center gap-2">
-                  <Briefcase className="h-4 w-4 text-[#F5A65B]" />
-                  <span className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[#F5A65B]">
-                    Career Alignment Audit
-                  </span>
-                </div>
-                <span className="rounded-full bg-[#FF6B2B]/15 border border-[#FF6B2B]/35 px-2.5 py-0.5 text-[11px] font-semibold text-[#FDF6EE]">
-                  {freePayload.career.idealModePill}
-                </span>
-              </div>
-
-              <AlignmentMeter
-                score={freePayload.career.alignmentScore}
-                subtitle={freePayload.career.subtitle}
-              />
-
-              <div className="mt-4 rounded-2xl border border-[#F5A65B]/20 bg-[#120C09]/85 p-4">
-                <div className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[#F5A65B]">
-                  Job vs. Business Verdict · {paidPayload.career.verdictBadge}
-                </div>
-                <p className="mt-1.5 text-[14px] leading-relaxed text-[#D9CEC5]">
-                  {paidPayload.career.jobVsBusinessVerdict}
-                </p>
-              </div>
-            </ObsidianCard>
-
-            <ObsidianCard>
-              <h3 className="font-serif text-[22px] text-[#FDF6EE]">
-                Field Match &amp; Timing Posture
-              </h3>
-
-              <div className="mt-3 space-y-3">
-                <div>
-                  <div className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[#F5A65B]">
-                    Current Field Match
-                  </div>
-                  <p className="mt-1 text-[14px] leading-relaxed text-[#D9CEC5]">
-                    {paidPayload.career.currentFieldMatch}
-                  </p>
-                </div>
-
-                <div className="border-t border-[#F5A65B]/15 pt-3">
-                  <div className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[#F5A65B]">
-                    The Duty vs. Purpose Gap
-                  </div>
-                  <p className="mt-1 text-[14px] leading-relaxed text-[#D9CEC5]">
-                    {paidPayload.career.dutyVsPurposeGap}
-                  </p>
-                </div>
-
-                <div className="border-t border-[#F5A65B]/15 pt-3">
-                  <div className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[#4ADE80]">
-                    Next 12 Months Timing Posture
-                  </div>
-                  <p className="mt-1 text-[14px] leading-relaxed text-[#D9CEC5]">
-                    {paidPayload.career.timingPosture}
-                  </p>
-                </div>
-              </div>
-            </ObsidianCard>
+          <div className="mt-5">
+            <CareerPaidSection
+              freeCareer={freePayload.career}
+              paidCareer={paidPayload.career}
+              savedAlternativeLanes={session.savedAlternativeLanes ?? []}
+              onToggleLane={handleToggleAlternativeLane}
+            />
           </div>
         )}
 

@@ -1,20 +1,237 @@
 import { z } from "zod";
 
-export const HookProofSchema = z.object({
-  hardReset: z.object({
-    window: z
-      .string()
-      .min(4)
-      .describe("Exact year range of the Hard Reset period provided in input."),
-    chapterLabel: z
-      .string()
-      .min(3)
-      .describe("Crisp 2-4 word evocative chapter title, e.g. 'The Structural Stripping'."),
-    description: z
-      .string()
-      .min(20)
-      .describe("Exactly 2 sharp, candid sentences capturing the emotional weight of that period."),
+// ============================================================================
+// HOOK #1: HARD RESET (FREE YEARLY PROOF vs. PAID TIGHT MONTHLY TIMELINE)
+// ============================================================================
+export const LockedMonthlyTeaserSchema = z.object({
+  id: z.string().min(1),
+  yearLabel: z
+    .string()
+    .regex(/^\d{4}$/, "Must be a 4-digit year only (e.g., '2022'). Never include month names."),
+  title: z
+    .string()
+    .min(3)
+    .max(60)
+    .describe("3-5 word visceral flashpoint title to create curiosity without revealing the month."),
+});
+
+export const HardResetProofSchema = z.object({
+  primaryYearRange: z
+    .string()
+    .min(4)
+    .max(24)
+    .describe("Exact yearly span only, e.g. '2022 – 2023'. NEVER include months or seasons."),
+  primaryChapterTitle: z.string().min(3).max(75),
+  introHook: z.string().min(15).max(200),
+  concreteRealLifeThemes: z
+    .array(z.string().min(20).max(260))
+    .min(2)
+    .max(3)
+    .describe("2-3 sharp, personalized everyday life themes for this yearly stretch. Zero clichés, zero month names."),
+  whatItRewired: z
+    .string()
+    .min(15)
+    .max(240)
+    .describe("1 crisp sentence on the lasting shift this yearly chapter forged."),
+  secondaryYearWindow: z.object({
+    yearRange: z.string().min(4).max(24).describe("Yearly span only, e.g. '2020 – 2021'."),
+    chapterTitle: z.string().min(3).max(75),
+    oneLineSnapshot: z.string().min(15).max(220),
   }),
+  lockedMonthlyTimelineTeaser: z.object({
+    totalLockedFlashpoints: z.number().int().min(3).max(16),
+    lockedChaptersSpan: z.string().min(4).max(30).describe("e.g., '2014 – 2023'"),
+    previewItems: z
+      .array(LockedMonthlyTeaserSchema)
+      .min(2)
+      .max(3)
+      .describe("2-3 blurred-date teaser titles from the primary chapter. Year only, NO month names."),
+    paywallCtaLine: z.string().min(15).max(190),
+  }),
+});
+
+export const PaidMonthlyFlashpointSchema = z.object({
+  id: z.string().min(1),
+  monthRange: z
+    .string()
+    .min(5)
+    .max(40)
+    .describe("Exact 1-to-3-month range copied verbatim from hardResetTelemetry, e.g. 'Late Oct – Nov 2022'."),
+  title: z
+    .string()
+    .min(3)
+    .max(60)
+    .describe("3-5 word visceral title matching or deepening the locked teaser."),
+  realLifeEvent: z
+    .string()
+    .min(25)
+    .max(300)
+    .describe("1-2 sharp sentences naming concrete everyday events, emotions, or physical signals."),
+});
+
+export const HardResetPaidChapterSchema = z.object({
+  chapterId: z.string().min(1),
+  yearRange: z.string().min(4).max(24),
+  chapterTitle: z.string().min(3).max(75),
+  flashpoints: z
+    .array(PaidMonthlyFlashpointSchema)
+    .min(2)
+    .max(4)
+    .describe("Tight 1-to-3-month pressure spikes inside this yearly chapter."),
+  howItFeltInside: z
+    .string()
+    .min(25)
+    .max(320)
+    .describe("Internal psychology + somatic/nervous-system stress signals (sleep, digestion, mental heat, fatigue)."),
+  whatItRewired: z
+    .string()
+    .min(20)
+    .max(280)
+    .describe("Earned resilience AND the leftover survival reflex to watch out for today."),
+});
+
+export const HardResetDeepDiveSchema = z.object({
+  chapters: z.array(HardResetPaidChapterSchema).min(2).max(4),
+  corePatternThread: z
+    .string()
+    .min(20)
+    .max(300)
+    .describe("1-2 sentences tying all reset chapters into one coherent evolution story."),
+  nextPressureWindow: z.object({
+    monthRange: z.string().min(4).max(40).describe("Exact upcoming 2-to-3-month window copied verbatim from telemetry."),
+    windowTitle: z.string().min(3).max(65),
+    whatToExpect: z.string().min(20).max(280),
+    prepMoves: z.tuple([
+      z.string().min(10).max(160),
+      z.string().min(10).max(160),
+      z.string().min(10).max(160),
+    ]),
+  }),
+});
+
+// ============================================================================
+// HOOK #3: CAREER & BUSINESS ALIGNMENT (FREE FIT TEASER vs. PAID CAREER GUIDE)
+// ============================================================================
+export const CareerProofSchema = z.object({
+  currentPathFitScore: z
+    .number()
+    .int()
+    .min(35)
+    .max(96)
+    .describe("Must match careerTelemetry.scores.current_path_fit_score verbatim."),
+  fitHeadline: z
+    .string()
+    .min(8)
+    .max(85)
+    .describe("Warm, everyday mentor summary, e.g. 'Great at the job, hungry for something deeper'."),
+  sweetSpotLabel: z
+    .string()
+    .min(6)
+    .max(70)
+    .describe("Plain-English ideal mode, e.g. 'Problem-Solver -> Builder of Your Own Thing'."),
+  whyYouAreGood: z
+    .string()
+    .min(25)
+    .max(280)
+    .describe("1-2 friendly mentor sentences explaining their natural edge."),
+  whyItFeelsEmptyOrShifting: z
+    .string()
+    .min(25)
+    .max(280)
+    .describe("1-2 candid sentences naming the Competence Trap or transition clarity. Zero month names."),
+  howWorkSeesYou: z
+    .string()
+    .min(25)
+    .max(260)
+    .describe("1-2 relatable sentences naming the workplace perception gap."),
+  lockedTeaser: z.object({
+    fieldAuditQuestion: z
+      .string()
+      .min(8)
+      .max(90)
+      .describe("e.g., 'Does Tech really fit you?' or 'Does your current track really fit you?'"),
+    alternativeLanesCount: z.number().int().min(3).max(5),
+    timingYearLabel: z
+      .string()
+      .regex(/^\d{4}(\s?[–-]\s?\d{4})?$/, "Year or year-span only (e.g. '2027' or '2026 – 2027'). NEVER include months."),
+    paywallCtaLine: z.string().min(12).max(170),
+  }),
+});
+
+export const CareerPathScoreItemSchema = z.object({
+  pathKey: z.enum(["day_job", "going_solo", "hybrid_side_build"]),
+  pathLabel: z.string().min(3).max(65),
+  fitScore: z.number().int().min(35).max(96),
+  isRecommended: z.boolean(),
+  honestMentorTake: z
+    .string()
+    .min(25)
+    .max(300)
+    .describe("2 warm, plain-English sentences explaining why this score fits them right now."),
+});
+
+export const AlternativeLaneSchema = z.object({
+  laneId: z.string().min(2),
+  laneName: z.string().min(3).max(70),
+  whyItFitsYou: z.string().min(25).max(260),
+});
+
+export const ForwardCareerWindowSchema = z.object({
+  id: z.string().min(1),
+  monthRange: z
+    .string()
+    .min(5)
+    .max(40)
+    .describe("Exact 1-to-3-month range copied verbatim from careerTelemetry.forward_12m_timing.upcoming_windows."),
+  windowTitle: z
+    .string()
+    .min(4)
+    .max(65)
+    .describe("Friendly, human label, e.g. 'Great Time to Put It Out There' or 'Watch Your Patience at Work'."),
+  practicalGuidance: z
+    .string()
+    .min(30)
+    .max(310)
+    .describe("2 warm, actionable mentor sentences on what to do and what to avoid in these exact months."),
+});
+
+export const CareerDeepDiveSchema = z.object({
+  pathComparison: z
+    .array(CareerPathScoreItemSchema)
+    .length(3)
+    .describe("Must contain day_job, going_solo, and hybrid_side_build with exact telemetry scores."),
+  fieldAudit: z.object({
+    statedFieldLabel: z.string().min(2).max(75),
+    whatFitsLikeAGlove: z.string().min(25).max(280),
+    whatIsMissing: z.string().min(25).max(280),
+    yourBestNextStep: z.string().min(30).max(300),
+  }),
+  hiddenAlternativeLanes: z.array(AlternativeLaneSchema).min(3).max(5),
+  perceptionGap: z.object({
+    insideYourHead: z.string().min(20).max(240),
+    whatCoworkersSee: z.string().min(20).max(240),
+    simpleShiftToTry: z.string().min(25).max(260),
+  }),
+  moneyAndLeaks: z.object({
+    howMoneyGrowsForYou: z.string().min(25).max(280),
+    quietHabitCostingYou: z.string().min(25).max(280),
+  }),
+  next12Months: z.object({
+    bigPictureSummary: z.string().min(30).max(300),
+    tightMonthlyWindows: z.array(ForwardCareerWindowSchema).min(2).max(4),
+    mindBodyPacingTip: z
+      .string()
+      .min(25)
+      .max(280)
+      .describe("1 grounded everyday habit to protect sleep, nerves, and focus without burnout."),
+  }),
+});
+
+// ============================================================================
+// COMBINED FREE PROOF & PAID FULL BLUEPRINT SCHEMAS
+// ============================================================================
+export const HookProofSchema = z.object({
+  hardReset: HardResetProofSchema,
   relationship: z.object({
     branch: z.enum(["partnered", "solo"]),
     archetype: z
@@ -26,22 +243,7 @@ export const HookProofSchema = z.object({
       .min(6)
       .describe("Short locked friction teaser badge, e.g. '1 Core Partner Friction Trigger Detected'."),
   }),
-  career: z.object({
-    alignmentScore: z
-      .number()
-      .int()
-      .min(35)
-      .max(96)
-      .describe("Integer 35-96 career alignment fit score."),
-    subtitle: z
-      .string()
-      .min(4)
-      .describe("Crisp 3-4 word fit label, e.g. 'High Stamina, Low Fulfillment'."),
-    idealModePill: z
-      .string()
-      .min(3)
-      .describe("1-2 word ideal operating mode label, e.g. 'Systems Architect' or 'Strategist'."),
-  }),
+  career: CareerProofSchema,
   selfSabotage: z.object({
     loopName: z
       .string()
@@ -82,29 +284,12 @@ export const HookProofSchema = z.object({
     .string()
     .nullable()
     .describe(
-      "Null when precisionMode is 'exact'. Otherwise a warm 1-sentence hint noting that adding an exact birth time later unlocks deeper career and partnership precision for free."
+      "Null when precisionMode is 'exact'. Otherwise a warm 1-sentence hint noting that adding an exact birth time later unlocks deeper career and timeline precision for free."
     ),
 });
 
 export const FullBlueprintSchema = z.object({
-  hardReset: z.object({
-    deepBreakdown: z
-      .string()
-      .min(30)
-      .describe("Deep structural lesson of why that reset period happened in plain behavioral terms."),
-    resilienceBuilt: z
-      .string()
-      .min(20)
-      .describe("The permanent skill, boundary, or emotional resilience forged during that window."),
-    nextPressureWindow: z
-      .string()
-      .min(4)
-      .describe("Exact nextPressureWindow string from input."),
-    preparationNote: z
-      .string()
-      .min(20)
-      .describe("Proactive, high-agency preparation advice for the next pressure window."),
-  }),
+  hardReset: HardResetDeepDiveSchema,
   relationship: z.object({
     coreAlignmentProfile: z
       .string()
@@ -122,28 +307,7 @@ export const FullBlueprintSchema = z.object({
       .min(6)
       .describe("Upcoming relationship clarity window grounded in their timing."),
   }),
-  career: z.object({
-    verdictBadge: z
-      .string()
-      .min(4)
-      .describe("Short verdict badge, e.g. 'Hybrid Builder -> Autonomous Lead'."),
-    jobVsBusinessVerdict: z
-      .string()
-      .min(30)
-      .describe("Clear Job vs. Business verdict comparing natural edge vs. how leadership/peers read them."),
-    currentFieldMatch: z
-      .string()
-      .min(25)
-      .describe("Direct evaluation of their stated careerField (or current trajectory if blank)."),
-    dutyVsPurposeGap: z
-      .string()
-      .min(20)
-      .describe("How to bridge practical stability with genuine internal fulfillment."),
-    timingPosture: z
-      .string()
-      .min(25)
-      .describe("1 concrete next move and 12-month timing posture."),
-  }),
+  career: CareerDeepDiveSchema,
   selfSabotage: z.object({
     triggerMapLove: z
       .string()
@@ -185,6 +349,10 @@ export const SynthesizedBlueprintSchema = z.object({
   full_blueprint_json: FullBlueprintSchema,
 });
 
+export type HardResetProofPayload = z.infer<typeof HardResetProofSchema>;
+export type HardResetDeepDivePayload = z.infer<typeof HardResetDeepDiveSchema>;
+export type CareerProofPayload = z.infer<typeof CareerProofSchema>;
+export type CareerDeepDivePayload = z.infer<typeof CareerDeepDiveSchema>;
 export type HookProofPayload = z.infer<typeof HookProofSchema>;
 export type FullBlueprintPayload = z.infer<typeof FullBlueprintSchema>;
 export type SynthesizedBlueprintPayload = z.infer<

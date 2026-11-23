@@ -197,7 +197,7 @@ test("synthesizeBlueprint strips real firstName and email from Gemini payload an
       capturedSys = sys;
       capturedUserPayload = JSON.stringify(user);
       const draft = makeCleanBlueprintPayload();
-      draft.hook_proof_json.hardReset.description = `${FIRST_NAME_PLACEHOLDER}, your 2020-2023 compression forced a sharp identity reset. You rebuilt your standards from scratch.`;
+      draft.hook_proof_json.hardReset.introHook = `${FIRST_NAME_PLACEHOLDER}, your 2022–2023 stretch forced a sharp identity reset and rebuilt your standards from scratch.`;
       draft.full_blueprint_json.relationship.coreAlignmentProfile = `${FIRST_NAME_PLACEHOLDER}, you bond through quiet reliability and honest communication.`;
       return schema.parse(draft);
     },
@@ -223,7 +223,7 @@ test("synthesizeBlueprint strips real firstName and email from Gemini payload an
 
   // Post-interpolation restores real first name cleanly
   assert.ok(
-    result.payload.hook_proof_json.hardReset.description.startsWith("Chandan,")
+    result.payload.hook_proof_json.hardReset.introHook.startsWith("Chandan,")
   );
   assert.ok(
     result.payload.full_blueprint_json.relationship.coreAlignmentProfile.startsWith(
@@ -413,7 +413,7 @@ test("Rate limiter enforces burst HTTP 429 and admin gate blocks non-admin acces
   assert.equal("birthDate" in brag, false);
 });
 
-test("Client funnel event endpoint rejects forged server-authoritative events and interpolateFirstName handles casing variants", async () => {
+test("Client funnel event endpoint rejects forged server-authoritative events, accepts locked-hook click events, and interpolateFirstName handles casing variants", async () => {
   resetRateLimiter();
   const forgedReq = new NextRequest("http://localhost:3000/api/funnel/event", {
     method: "POST",
@@ -425,6 +425,22 @@ test("Client funnel event endpoint rejects forged server-authoritative events an
   });
   const forgedRes = await funnelEventRoute(forgedReq);
   assert.equal(forgedRes.status, 400);
+
+  for (const allowedEvent of [
+    "clicked_locked_monthly_timeline",
+    "clicked_locked_career_blueprint",
+  ]) {
+    const okReq = new NextRequest("http://localhost:3000/api/funnel/event", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "x-forwarded-for": "203.0.113.100",
+      },
+      body: JSON.stringify({ eventName: allowedEvent }),
+    });
+    const okRes = await funnelEventRoute(okReq);
+    assert.equal(okRes.status, 200);
+  }
 
   const interpolated = interpolateFirstName(
     {

@@ -34,8 +34,8 @@ function makeStubLlmProvider(
 test("synthesizeBlueprint auto-repairs banned jargon on 1 retry and throws if retry still fails", async () => {
   const chart = makeChartBundleResult("exact").normalizedChartJson;
   const poisoned = makeCleanBlueprintPayload();
-  poisoned.hook_proof_json.hardReset.description =
-    "Your Rahu Mahadasha in the 10th house forced a tough reset.";
+  poisoned.hook_proof_json.hardReset.concreteRealLifeThemes[0] =
+    "Your Rahu Mahadasha in the 10th house forced a tough reset in Late Oct – Nov 2022.";
   const clean = makeCleanBlueprintPayload();
 
   // Pass 1 poisoned -> Pass 2 clean repair
@@ -222,15 +222,27 @@ test("blueprintSession caches LLM output and strictly strips full_blueprint_json
     assert.equal(paidGet.isUnlocked, true);
     assert.ok(paidGet.full_blueprint_json);
 
-    // 7. Accuracy feedback saves cleanly
+    // 7. Accuracy feedback and bookmark arrays save cleanly
     const fb = await saveBlueprintFeedback({
       chartIdOrToken: chartId,
       feedback: "scarily_accurate",
+      confirmedFlashpointIds: ["fp_2022_02"],
+      savedAlternativeLanes: ["holistic_health_wellness_performance"],
       sessionToken,
       admin: db.asAdminClient(),
     });
     assert.equal(fb.accuracyFeedback, "scarily_accurate");
+    assert.deepEqual(fb.confirmedFlashpointIds, ["fp_2022_02"]);
+    assert.deepEqual(fb.savedAlternativeLanes, [
+      "holistic_health_wellness_performance",
+    ]);
     assert.equal(db.tables.blueprints[0].accuracy_feedback, "scarily_accurate");
+
+    // 8. Telemetry objects are NEVER exposed over the wire
+    const serialized = JSON.stringify(unpaidGet);
+    assert.ok(!serialized.includes("hardResetTelemetry"));
+    assert.ok(!serialized.includes("careerTelemetry"));
+    assert.ok(!serialized.includes("trigger_summary_internal"));
   } finally {
     if (prevDevUnlock === undefined) delete env.DEV_UNLOCK_PREVIEW;
     else env.DEV_UNLOCK_PREVIEW = prevDevUnlock;

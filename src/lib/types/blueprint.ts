@@ -1,3 +1,8 @@
+import type {
+  FullBlueprintPayload,
+  HookProofPayload,
+} from "@/lib/llm/blueprintSchema";
+
 export type PrecisionMode = "exact" | "window" | "dob_only";
 
 export type BirthWindow = "morning" | "afternoon" | "evening" | "late_night";
@@ -10,7 +15,10 @@ export type RelationshipStatus =
 
 export type CareerMode =
   | "employed"
+  | "employed_hybrid"
   | "founder"
+  | "freelance_hybrid"
+  | "in_transition"
   | "freelance"
   | "transition";
 
@@ -42,6 +50,8 @@ export type FunnelEventName =
   | "chart_calculated"
   | "proof_viewed"
   | "accuracy_rated"
+  | "clicked_locked_monthly_timeline"
+  | "clicked_locked_career_blueprint"
   | "paywall_viewed"
   | "paywall_cta_clicked"
   | "beta_unlocked"
@@ -82,76 +92,8 @@ export interface EraSummary {
   summary: string;
 }
 
-export interface BlueprintFreePayload {
-  hardReset: {
-    window: string;
-    chapterLabel: string;
-    description: string;
-  };
-  relationship: {
-    branch: "partnered" | "solo";
-    archetype: string;
-    teaserBadge: string;
-  };
-  career: {
-    alignmentScore: number;
-    subtitle: string;
-    idealModePill: string;
-  };
-  selfSabotage: {
-    loopName: string;
-    symptomSentence: string;
-  };
-  eras: {
-    era1: EraSummary;
-    era2: EraSummary;
-    era3Preview: {
-      title: string;
-      dateRange: string;
-      percentComplete: number;
-    };
-  };
-  upgrade_hint?: string | null;
-}
-
-export interface BlueprintPaidPayload {
-  hardReset: {
-    deepBreakdown: string;
-    resilienceBuilt: string;
-    nextPressureWindow: string;
-    preparationNote: string;
-  };
-  relationship: {
-    coreAlignmentProfile: string;
-    silentFrictionPattern: string;
-    communicationShifts: [string, string];
-    clarityWindow: string;
-  };
-  career: {
-    verdictBadge: string;
-    jobVsBusinessVerdict: string;
-    currentFieldMatch: string;
-    dutyVsPurposeGap: string;
-    timingPosture: string;
-  };
-  selfSabotage: {
-    triggerMapLove: string;
-    triggerMapCareer: string;
-    antidoteSteps: [string, string, string];
-  };
-  eras: {
-    era3Playbook: {
-      coreMandate: string;
-      doubleDown: string;
-      eliminate: string;
-    };
-    era4Preview: {
-      title: string;
-      dateRange: string;
-      theme: string;
-    };
-  };
-}
+export type BlueprintFreePayload = HookProofPayload;
+export type BlueprintPaidPayload = FullBlueprintPayload;
 
 export interface ReflectionNote {
   id: string;
@@ -170,6 +112,8 @@ export interface BlueprintSession {
   freePayload: BlueprintFreePayload;
   paidPayload: BlueprintPaidPayload | null;
   hardResetFeedback: HardResetFeedback | null;
+  confirmedFlashpointIds?: string[];
+  savedAlternativeLanes?: string[];
   isUnlocked: boolean;
   unlockTier: "one_time_19" | "annual_39" | null;
   unlockSource?: UnlockSource | null;

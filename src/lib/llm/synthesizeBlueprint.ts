@@ -1,3 +1,13 @@
+import {
+  CareerTelemetry,
+  computeCareerTelemetry,
+  normalizeCareerMode,
+  type CanonicalCareerMode,
+} from "@/lib/astro/careerEngine";
+import {
+  computeHardResetTelemetry,
+  HardResetTelemetry,
+} from "@/lib/astro/hardResetEngine";
 import { NormalizedChartJson } from "@/lib/astro/types";
 import {
   SynthesizedBlueprintPayload,
@@ -9,6 +19,8 @@ import {
   BlueprintGuardrailError,
   GuardrailAuditResult,
 } from "@/lib/llm/guardrails";
+import { buildCareerPromptSection } from "@/lib/llm/prompts/careerPrompt";
+import { buildHardResetPromptSection } from "@/lib/llm/prompts/hardResetPrompt";
 import { LlmProvider } from "@/lib/llm/provider";
 import { CareerMode, RelationshipStatus } from "@/lib/types/blueprint";
 
@@ -16,6 +28,7 @@ export const FIRST_NAME_PLACEHOLDER = "{{FIRST_NAME}}";
 
 export interface BlueprintUserProfileContext {
   firstName: string;
+  dobIso?: string | null;
   relationshipStatus: RelationshipStatus;
   careerMode: CareerMode;
   careerField: string;
@@ -24,6 +37,7 @@ export interface BlueprintUserProfileContext {
 export interface SynthesizeBlueprintInput {
   normalizedChart: NormalizedChartJson;
   profile: BlueprintUserProfileContext;
+  referenceDate?: Date;
 }
 
 export interface SynthesizeBlueprintResult {
@@ -40,11 +54,12 @@ const RELATIONSHIP_LABELS: Record<RelationshipStatus, string> = {
   shifting: "Navigating a Shift",
 };
 
-const CAREER_MODE_LABELS: Record<CareerMode, string> = {
-  employed: "Employed (9-5)",
+const CAREER_MODE_LABELS: Record<CanonicalCareerMode, string> = {
+  employed: "Employed (9–5 Day Job)",
+  employed_hybrid: "9–5 + Building on the Side",
   founder: "Founder / Business Owner",
-  freelance: "Freelance / Hybrid",
-  transition: "In Transition",
+  freelance_hybrid: "Freelance / Consulting",
+  in_transition: "Between Roles / Exploring",
 };
 
 function summarizeDivisionalChart(
@@ -69,12 +84,57 @@ function summarizeDivisionalChart(
   return Object.fromEntries(Object.entries(chartObj).slice(0, 14));
 }
 
+function computeTelemetryBundle(input: SynthesizeBlueprintInput): {
+  hardResetTelemetry: HardResetTelemetry;
+  careerTelemetry: CareerTelemetry;
+  canonicalCareerMode: CanonicalCareerMode;
+} {
+  const canonicalCareerMode = normalizeCareerMode(input.profile.careerMode);
+  const refDate = input.referenceDate ?? new Date();
+
+  const hardResetTelemetry = computeHardResetTelemetry(
+    input.normalizedChart,
+    {
+      firstName: FIRST_NAME_PLACEHOLDER,
+      dobIso: input.profile.dobIso,
+      relationshipStatus: input.profile.relationshipStatus,
+      careerMode: canonicalCareerMode,
+      careerField: input.profile.careerField,
+    },
+    input.normalizedChart.precisionMode,
+    refDate
+  );
+
+  const careerTelemetry = computeCareerTelemetry(
+    input.normalizedChart,
+    {
+      firstName: FIRST_NAME_PLACEHOLDER,
+      careerMode: canonicalCareerMode,
+      careerField: input.profile.careerField,
+    },
+    input.normalizedChart.precisionMode,
+    refDate
+  );
+
+  return { hardResetTelemetry, careerTelemetry, canonicalCareerMode };
+}
+
 /**
  * Builds the zero-PII prompt payload sent to Gemini.
  * Strips email and replaces first_name with the literal {{FIRST_NAME}} placeholder.
+ * Includes server-only deterministic telemetry for Hook #1 (Hard Reset) and Hook #3 (Career).
  */
-export function buildChartSignalPayload(input: SynthesizeBlueprintInput) {
+export function buildChartSignalPayload(
+  input: SynthesizeBlueprintInput,
+  telemetryOverride?: {
+    hardResetTelemetry: HardResetTelemetry;
+    careerTelemetry: CareerTelemetry;
+    canonicalCareerMode: CanonicalCareerMode;
+  }
+) {
   const { normalizedChart, profile } = input;
+  const { hardResetTelemetry, careerTelemetry, canonicalCareerMode } =
+    telemetryOverride ?? computeTelemetryBundle(input);
   const isExact = normalizedChart.precisionMode === "exact";
   const isPartnered =
     profile.relationshipStatus === "married" ||
@@ -86,8 +146,8 @@ export function buildChartSignalPayload(input: SynthesizeBlueprintInput) {
       relationshipStatus: profile.relationshipStatus,
       relationshipLabel: RELATIONSHIP_LABELS[profile.relationshipStatus],
       relationshipBranch: isPartnered ? "partnered" : "solo",
-      careerMode: profile.careerMode,
-      careerModeLabel: CAREER_MODE_LABELS[profile.careerMode],
+      careerMode: canonicalCareerMode,
+      careerModeLabel: CAREER_MODE_LABELS[canonicalCareerMode],
       careerField: profile.careerField.trim() || "(not specified)",
     },
     precisionContext: {
@@ -95,9 +155,25 @@ export function buildChartSignalPayload(input: SynthesizeBlueprintInput) {
       isExactBirthTime: isExact,
       moonBoundaryFlag: normalizedChart.moonBoundaryFlag,
     },
+    hardResetTelemetry,
+    careerTelemetry,
     exactAnchorsToPreserveVerbatim: {
-      hardResetWindow: normalizedChart.hardResetWindow.dateRange,
-      nextPressureWindow: normalizedChart.nextPressureWindow,
+      hardResetPrimaryYearRange:
+        hardResetTelemetry.selected_chapters[0]?.year_range ??
+        normalizedChart.hardResetWindow.dateRange,
+      hardResetSecondaryYearRange:
+        hardResetTelemetry.selected_chapters[1]?.year_range ??
+        normalizedChart.hardResetWindow.dateRange,
+      hardResetNextPressureMonthRange:
+        hardResetTelemetry.upcoming_prep_window.month_range,
+      careerCurrentPathFitScore: careerTelemetry.scores.current_path_fit_score,
+      careerPathScores: {
+        day_job: careerTelemetry.scores.day_job_score,
+        going_solo: careerTelemetry.scores.going_solo_score,
+        hybrid_side_build: careerTelemetry.scores.hybrid_side_build_score,
+      },
+      careerTimingYearLabel:
+        careerTelemetry.forward_12m_timing.timing_year_label,
       era1DateRange: normalizedChart.eras.era1.dateRange,
       era2DateRange: normalizedChart.eras.era2.dateRange,
       era3DateRange: normalizedChart.eras.era3.dateRange,
@@ -143,7 +219,7 @@ export function interpolateFirstName<T>(value: T, firstName: string): T {
   const safeName = firstName.trim() || "Friend";
 
   if (typeof value === "string") {
-    return value.replace(/\{\{?\s*FIRST_NAME\s*\}?\}/gi, safeName) as T;
+    return value.replace(/\{\{?\s*first_name\s*\}?\}/gi, safeName) as T;
   }
   if (Array.isArray(value)) {
     return value.map((item) => interpolateFirstName(item, safeName)) as T;
@@ -158,7 +234,10 @@ export function interpolateFirstName<T>(value: T, firstName: string): T {
   return value;
 }
 
-function buildSystemPrompt(input: SynthesizeBlueprintInput): string {
+function buildSystemPrompt(
+  input: SynthesizeBlueprintInput,
+  canonicalCareerMode: CanonicalCareerMode
+): string {
   const { normalizedChart, profile } = input;
   const isExact = normalizedChart.precisionMode === "exact";
 
@@ -166,13 +245,13 @@ function buildSystemPrompt(input: SynthesizeBlueprintInput): string {
     ? `PRECISION MODE = "exact":
 - Exact birth time is available. You may weave sharp contrasts between internal emotional drive and external leadership perception, career authority dynamics, and partnership durability patterns—always expressed purely in modern behavioral psychology.`
     : `CRITICAL PRECISION CONSTRAINT (precisionMode = "${normalizedChart.precisionMode}"):
-- Exact birth time was NOT provided. You MUST NOT fabricate or mention rising-sign / first-impression perception splits, house-specific career status, or divisional-chart nuances.
-- Anchor all 5 hooks honestly in lunar emotional rhythms, macro multi-year timing pressure, and core behavioral number archetypes—still expressed in plain modern psychology.${
+- Exact birth time was NOT provided. You MUST NOT fabricate rising-sign / first-impression perception splits, house-specific career status, or divisional-chart nuances absent from telemetry.
+- Anchor all 5 hooks honestly in the provided lunar/solar/natal telemetry and core behavioral archetypes—still expressed in plain modern psychology.${
         normalizedChart.moonBoundaryFlag
-          ? "\n- NOTE: Birth occurred on a lunar transition boundary day. Lean more heavily on solar character, macro multi-year cycle shifts, and core number dynamics rather than overly narrow emotional-temperament stereotypes."
+          ? "\n- NOTE: Birth occurred on a lunar transition boundary day. Lean more heavily on solar character, macro multi-year cycle shifts, and core number dynamics."
           : ""
       }
-- You MUST populate hook_proof_json.upgrade_hint with a warm, friendly 1-sentence note letting the user know that adding their exact birth time later unlocks deeper career and partnership precision for free.`;
+- You MUST populate hook_proof_json.upgrade_hint with a warm, friendly 1-sentence note letting the user know that adding their exact birth time later sharpens their timeline and workplace precision for free.`;
 
   const relationshipGuidance =
     profile.relationshipStatus === "married" ||
@@ -183,26 +262,25 @@ function buildSystemPrompt(input: SynthesizeBlueprintInput): string {
 - Focus Hook 2 on attraction magnetism, repeating partner patterns, relational pacing, and what actually sustains long-term peace.`;
 
   return `You are the behavioral synthesis engine for Personal Blueprint, a modern US self-reflection platform ("Ancient pattern intelligence meets modern self-reflection").
-Your job is to translate the internal pattern calculation signals in the user payload into deeply resonant, candid, high-agency modern behavioral insights across 5 hooks, strictly separated into free proof (hook_proof_json) and paid deep-dive (full_blueprint_json).
+Your job is to translate the internal pattern calculation signals and deterministic telemetry in the user payload into deeply resonant, candid, high-agency modern behavioral insights across 5 hooks, strictly separated into free proof (hook_proof_json) and paid deep-dive (full_blueprint_json).
 
 TONE & VOICE:
-- Warm, grounded, perceptive US executive mentor—never fortune-telling, mystical fluff, doom, or clinical therapy.
+- Warm, grounded, perceptive US mentor talking one-on-one over coffee—never fortune-telling, mystical fluff, corporate consultant-speak, doom, or clinical therapy.
 - Specific, emotionally uncanny, and actionable. Speak directly to the user ("you", using the literal token ${FIRST_NAME_PLACEHOLDER} naturally where helpful—never invent another name).
 - ZERO fatalism. Frame challenges as structural patterns and agency levers.
 
 ABSOLUTE JARGON BAN (STRICTLY ENFORCED BY AUTOMATED SCANNER):
 You MUST NEVER output ANY of the following words or concepts anywhere in any JSON string value (including titles, badges, pills, or summaries):
-- Any astrology, horoscope, zodiac, planetary, Sanskrit, Ayurvedic, or numerology terms: astrology, astrological, horoscope, vedic, jyotish, zodiac, planet, planets, planetary, transit, transits, lagna, ascendant, rising sign, rashi, dasha, mahadasha, antardasha, nakshatra, pada, kundali, kundli, rahu, ketu, shani, saturn, mangal, mars, shukra, venus, budha, mercury, surya, chandra, guru, jupiter, pluto, uranus, neptune, retrograde, sade sati, dhaiya, panauti, dusthana, kendra, trikona, navamsha, navamsa, dashamsha, dashamsa, upapada, arudha, karma, karmic, upaay, mantra, chakra, remedy, pitta, vata, kapha, dosha, dharma, numerology, life path number, any zodiac sign name (Aries..Pisces or Mesha..Meena), or any numbered house ("1st house" .. "12th house").
+- Any astrology, horoscope, zodiac, planetary, Sanskrit, Ayurvedic, or numerology terms: astrology, astrological, horoscope, vedic, jyotish, zodiac, planet, planets, planetary, transit, transits, eclipse, lagna, ascendant, rising sign, rashi, dasha, mahadasha, antardasha, nakshatra, pada, kundali, kundli, rahu, ketu, shani, saturn, mangal, mars, shukra, venus, budha, mercury, surya, chandra, guru, jupiter, pluto, uranus, neptune, retrograde, sade sati, dhaiya, panauti, dusthana, kendra, trikona, navamsha, navamsa, dashamsha, dashamsa, upapada, arudha, karma, karmic, upaay, mantra, chakra, remedy, pitta, vata, kapha, dosha, dharma, numerology, life path number, any zodiac sign name (Aries..Pisces or Mesha..Meena), or any numbered house ("1st house" .. "12th house").
 - Any fatalistic or clinical terms: divorce, infidelity, cheating, cursed, doomed, bad luck, unlucky, early death, clinical depression, diagnose, therapy, therapist.
-Instead, translate all underlying calculations into plain modern psychology, nervous-system regulation, leadership dynamics, and decision architecture (e.g., "multi-year compression phase", "internal emotional baseline", "natural operating rhythm", "structural pivot").
 
 ${precisionConstraint}
 
+${buildHardResetPromptSection(FIRST_NAME_PLACEHOLDER)}
+
 ${relationshipGuidance}
 
-CAREER AUDIT GUIDANCE:
-- Evaluate their careerMode (${CAREER_MODE_LABELS[profile.careerMode]}) and stated careerField (${profile.careerField.trim() || "general leadership/craft"}).
-- Provide an honest alignmentScore (35-96), a crisp 3-4 word subtitle, a 1-2 word idealModePill, and in the paid layer give a clear Job vs. Business verdict, natural edge vs. how leadership reads them, field evaluation, duty vs. purpose gap, and 1 concrete 12-month next move.
+${buildCareerPromptSection(FIRST_NAME_PLACEHOLDER, canonicalCareerMode, profile.careerField.trim())}
 
 VERBATIM ANCHORS:
 - Preserve all strings and numbers in exactAnchorsToPreserveVerbatim verbatim in their corresponding output fields.
@@ -211,7 +289,9 @@ VERBATIM ANCHORS:
 
 function enforceDeterministicAnchors(
   draft: SynthesizedBlueprintPayload,
-  input: SynthesizeBlueprintInput
+  input: SynthesizeBlueprintInput,
+  hardResetTelemetry: HardResetTelemetry,
+  careerTelemetry: CareerTelemetry
 ): SynthesizedBlueprintPayload {
   const { normalizedChart, profile } = input;
   const isExact = normalizedChart.precisionMode === "exact";
@@ -220,18 +300,123 @@ function enforceDeterministicAnchors(
     profile.relationshipStatus === "relationship";
 
   const defaultUpgradeHint =
-    "Want sharper career & relationship precision? Add your exact birth time anytime for a free refresh.";
+    "Add your exact birth time anytime to sharpen your workplace perception and monthly timing windows for free.";
+
+  const primaryChapter = hardResetTelemetry.selected_chapters[0];
+  const secondaryChapter = hardResetTelemetry.selected_chapters[1];
+
+  const previewItems = draft.hook_proof_json.hardReset.lockedMonthlyTimelineTeaser.previewItems.map(
+    (item, idx) => {
+      const sourceFp = primaryChapter?.flashpoints[idx];
+      return {
+        ...item,
+        id: sourceFp?.id ?? item.id,
+        yearLabel: sourceFp?.year_label ?? item.yearLabel,
+      };
+    }
+  );
+
+  // Ensure deterministic score alignment in paid pathComparison
+  const scoreByKey: Record<"day_job" | "going_solo" | "hybrid_side_build", number> = {
+    day_job: careerTelemetry.scores.day_job_score,
+    going_solo: careerTelemetry.scores.going_solo_score,
+    hybrid_side_build: careerTelemetry.scores.hybrid_side_build_score,
+  };
+  const maxScore = Math.max(
+    scoreByKey.day_job,
+    scoreByKey.going_solo,
+    scoreByKey.hybrid_side_build
+  );
+
+  const lockedPathComparison = draft.full_blueprint_json.career.pathComparison.map(
+    (item) => {
+      const exactScore = scoreByKey[item.pathKey];
+      return {
+        ...item,
+        fitScore: exactScore,
+        isRecommended: exactScore === maxScore,
+      };
+    }
+  );
+
+  // Align paid Hard Reset chapters/flashpoints verbatim to telemetry when IDs/indices match
+  const lockedHardResetChapters = draft.full_blueprint_json.hardReset.chapters.map(
+    (ch, chIdx) => {
+      const tCh =
+        hardResetTelemetry.selected_chapters.find((c) => c.chapter_id === ch.chapterId) ??
+        hardResetTelemetry.selected_chapters[chIdx];
+      if (!tCh) return ch;
+      return {
+        ...ch,
+        chapterId: tCh.chapter_id,
+        yearRange: tCh.year_range,
+        flashpoints: ch.flashpoints.map((fp, fpIdx) => {
+          const tFp =
+            tCh.flashpoints.find((f) => f.id === fp.id) ??
+            tCh.flashpoints[fpIdx];
+          if (!tFp) return fp;
+          return {
+            ...fp,
+            id: tFp.id,
+            monthRange: tFp.month_range,
+          };
+        }),
+      };
+    }
+  );
+
+  // Align paid Career tight monthly windows verbatim to telemetry
+  const lockedCareerWindows =
+    draft.full_blueprint_json.career.next12Months.tightMonthlyWindows.map(
+      (win, idx) => {
+        const tWin =
+          careerTelemetry.forward_12m_timing.upcoming_windows.find(
+            (w) => w.id === win.id
+          ) ?? careerTelemetry.forward_12m_timing.upcoming_windows[idx];
+        if (!tWin) return win;
+        return {
+          ...win,
+          id: tWin.id,
+          monthRange: tWin.month_range,
+        };
+      }
+    );
 
   return {
     hook_proof_json: {
       ...draft.hook_proof_json,
       hardReset: {
         ...draft.hook_proof_json.hardReset,
-        window: normalizedChart.hardResetWindow.dateRange,
+        primaryYearRange:
+          primaryChapter?.year_range ??
+          draft.hook_proof_json.hardReset.primaryYearRange,
+        secondaryYearWindow: {
+          ...draft.hook_proof_json.hardReset.secondaryYearWindow,
+          yearRange:
+            secondaryChapter?.year_range ??
+            draft.hook_proof_json.hardReset.secondaryYearWindow.yearRange,
+        },
+        lockedMonthlyTimelineTeaser: {
+          ...draft.hook_proof_json.hardReset.lockedMonthlyTimelineTeaser,
+          totalLockedFlashpoints: hardResetTelemetry.total_flashpoints_detected,
+          lockedChaptersSpan: hardResetTelemetry.locked_chapters_span,
+          previewItems,
+        },
       },
       relationship: {
         ...draft.hook_proof_json.relationship,
         branch: isPartnered ? "partnered" : "solo",
+      },
+      career: {
+        ...draft.hook_proof_json.career,
+        currentPathFitScore: careerTelemetry.scores.current_path_fit_score,
+        lockedTeaser: {
+          ...draft.hook_proof_json.career.lockedTeaser,
+          alternativeLanesCount:
+            careerTelemetry.natal_work_profile.alternative_lanes.length,
+          timingYearLabel:
+            careerTelemetry.forward_12m_timing.timing_year_label,
+        },
       },
       eras: {
         era1: {
@@ -262,7 +447,19 @@ function enforceDeterministicAnchors(
       ...draft.full_blueprint_json,
       hardReset: {
         ...draft.full_blueprint_json.hardReset,
-        nextPressureWindow: normalizedChart.nextPressureWindow,
+        chapters: lockedHardResetChapters,
+        nextPressureWindow: {
+          ...draft.full_blueprint_json.hardReset.nextPressureWindow,
+          monthRange: hardResetTelemetry.upcoming_prep_window.month_range,
+        },
+      },
+      career: {
+        ...draft.full_blueprint_json.career,
+        pathComparison: lockedPathComparison,
+        next12Months: {
+          ...draft.full_blueprint_json.career.next12Months,
+          tightMonthlyWindows: lockedCareerWindows,
+        },
       },
       eras: {
         ...draft.full_blueprint_json.eras,
@@ -282,24 +479,26 @@ function buildRepairSystemPrompt(
   return `${baseSystemPrompt}
 
 REPAIR INSTRUCTION:
-Your previous draft violated the strict Jargon-Ban & High-Agency Guardrail.
-Flagged banned terms: ${audit.flaggedTerms.join(", ")}
+Your previous draft violated the strict Content, Tone, or Two-Tier Monetization Guardrail.
+Flagged terms/issues: ${audit.flaggedTerms.join(", ")}
 Specific violations:
 ${audit.violations
-  .map((v) => `- At "${v.path}": found "${v.term}" inside "...${v.snippet}..."`)
+  .map((v) => `- [${v.category}] At "${v.path}": found "${v.term}" inside "...${v.snippet}..."`)
   .join("\n")}
 
-Rewrite ONLY the offending sentences into warm, high-agency modern behavioral psychology.
-Do NOT include any of the flagged terms or any other banned astrology, Sanskrit, numerology, fatalistic, or clinical words.
-Preserve all exact dates, numbers, branch values, ${FIRST_NAME_PLACEHOLDER} tokens, and JSON structure identically.`;
+Rewrite ONLY the offending sentences into warm, plain-English modern behavioral guidance.
+- Remove ALL astrology/Sanskrit/numerology terms, fatalistic/clinical words, horoscope clichés, and corporate buzzwords.
+- Remove ALL month names, seasons, and paid career path percentages from the FREE \`hook_proof_json\` tier while preserving concrete real-life meaning.
+- Preserve all exact telemetry dates, scores, branch values, ${FIRST_NAME_PLACEHOLDER} tokens, and JSON structure identically.`;
 }
 
 export async function synthesizeBlueprint(
   input: SynthesizeBlueprintInput,
   provider: LlmProvider = getLlmProvider()
 ): Promise<SynthesizeBlueprintResult> {
-  const systemPrompt = buildSystemPrompt(input);
-  const userPayload = buildChartSignalPayload(input);
+  const telemetry = computeTelemetryBundle(input);
+  const systemPrompt = buildSystemPrompt(input, telemetry.canonicalCareerMode);
+  const userPayload = buildChartSignalPayload(input, telemetry);
 
   let llmCallsMade = 0;
   let repairedAfterAudit = false;
@@ -312,8 +511,16 @@ export async function synthesizeBlueprint(
     { temperature: 0.35 }
   );
 
-  let finalPayload = enforceDeterministicAnchors(rawDraft, input);
-  let audit = auditBlueprintOutput(finalPayload);
+  let finalPayload = enforceDeterministicAnchors(
+    rawDraft,
+    input,
+    telemetry.hardResetTelemetry,
+    telemetry.careerTelemetry
+  );
+  let audit = auditBlueprintOutput(finalPayload, {
+    hardResetTelemetry: telemetry.hardResetTelemetry,
+    careerTelemetry: telemetry.careerTelemetry,
+  });
 
   if (!audit.passed) {
     console.warn(
@@ -337,8 +544,16 @@ export async function synthesizeBlueprint(
       { temperature: 0.25 }
     );
 
-    finalPayload = enforceDeterministicAnchors(repairedDraft, input);
-    audit = auditBlueprintOutput(finalPayload);
+    finalPayload = enforceDeterministicAnchors(
+      repairedDraft,
+      input,
+      telemetry.hardResetTelemetry,
+      telemetry.careerTelemetry
+    );
+    audit = auditBlueprintOutput(finalPayload, {
+      hardResetTelemetry: telemetry.hardResetTelemetry,
+      careerTelemetry: telemetry.careerTelemetry,
+    });
 
     if (!audit.passed) {
       console.error(

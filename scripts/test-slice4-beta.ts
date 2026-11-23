@@ -221,7 +221,7 @@ async function runSlice4Verification() {
       capturedSystem = systemPrompt;
       capturedPromptJson = JSON.stringify(userPayload);
       const draft = makeCleanBlueprintPayload();
-      draft.hook_proof_json.hardReset.description = `${FIRST_NAME_PLACEHOLDER}, that two-year compression reshaped your trajectory. You came out with far sharper boundaries.`;
+      draft.hook_proof_json.hardReset.introHook = `${FIRST_NAME_PLACEHOLDER}, that two-year compression reshaped your trajectory. You came out with far sharper boundaries.`;
       return schema.parse(draft);
     },
   };
@@ -245,7 +245,7 @@ async function runSlice4Verification() {
   assert.equal(capturedSystem.includes(realFirstName), false);
   assert.equal(capturedSystem.includes(realEmail), false);
   assert.ok(
-    synthResult.payload.hook_proof_json.hardReset.description.startsWith(
+    synthResult.payload.hook_proof_json.hardReset.introHook.startsWith(
       `${realFirstName},`
     )
   );
