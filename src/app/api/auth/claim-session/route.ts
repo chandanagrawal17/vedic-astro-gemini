@@ -42,16 +42,17 @@ export async function POST(req: NextRequest) {
     const sessionToken =
       parsed.data.sessionToken ?? req.cookies.get("pb_session_token")?.value;
 
-    if (!sessionToken) {
+    if (!sessionToken && !user.email) {
       return NextResponse.json(
-        { error: "Missing sessionToken to claim." },
+        { error: "Missing sessionToken or email to claim." },
         { status: 400 }
       );
     }
 
     const result = await claimSessionForUser({
-      sessionToken,
+      sessionToken: sessionToken ?? null,
       userId: user.id,
+      userEmail: user.email ?? null,
       firstName: parsed.data.firstName,
       relationshipStatus: parsed.data.relationshipStatus,
       careerMode: parsed.data.careerMode,
@@ -61,9 +62,10 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({
       ok: true,
       userId: user.id,
-      sessionToken,
+      sessionToken: result.sessionToken ?? sessionToken ?? null,
       chartId: result.chartId,
       blueprintId: result.blueprintId,
+      isPaid: result.isPaid,
     });
   } catch (err) {
     console.error("[POST /api/auth/claim-session] Error:", err);

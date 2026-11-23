@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { X, Mail, Sparkles } from "lucide-react";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import { OnboardingInput } from "@/lib/types/blueprint";
@@ -8,9 +8,13 @@ import { OnboardingInput } from "@/lib/types/blueprint";
 interface SoftAuthModalProps {
   isOpen: boolean;
   firstName: string;
+  initialEmail?: string;
   sessionId?: string;
   sessionToken?: string;
   onboardingInput?: OnboardingInput;
+  titleOverride?: string;
+  descriptionOverride?: string;
+  nextPathOverride?: string;
   onClose: () => void;
   onContinue: (email?: string) => void;
 }
@@ -18,29 +22,42 @@ interface SoftAuthModalProps {
 export function SoftAuthModal({
   isOpen,
   firstName,
+  initialEmail,
   sessionId = "demo-session",
   sessionToken,
   onboardingInput,
+  titleOverride,
+  descriptionOverride,
+  nextPathOverride,
   onClose,
   onContinue,
 }: SoftAuthModalProps) {
-  const [email, setEmail] = useState("");
+  const prefilledEmail = onboardingInput?.email ?? initialEmail ?? "";
+  const [email, setEmail] = useState(prefilledEmail);
   const [otpCode, setOtpCode] = useState("");
   const [otpSent, setOtpSent] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
+  useEffect(() => {
+    if (isOpen && prefilledEmail) {
+      setEmail((prev) => prev || prefilledEmail);
+    }
+  }, [isOpen, prefilledEmail]);
+
   if (!isOpen) return null;
 
   const activeToken = sessionToken || sessionId;
+  const resolvedNextPath = nextPathOverride || `/unlock/${sessionId}`;
 
   const claimSession = async () => {
-    if (!activeToken || activeToken === "demo-session") return;
+    const hasToken = Boolean(activeToken && activeToken !== "demo-session");
+    if (!hasToken && !email.trim()) return;
     const res = await fetch("/api/auth/claim-session", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        sessionToken: activeToken,
+        sessionToken: hasToken ? activeToken : undefined,
         firstName: onboardingInput?.firstName ?? firstName,
         relationshipStatus: onboardingInput?.relationshipStatus,
         careerMode: onboardingInput?.careerMode,
@@ -67,7 +84,7 @@ export function SoftAuthModal({
       }
 
       const redirectTo = `${window.location.origin}/auth/callback?next=${encodeURIComponent(
-        `/unlock/${sessionId}`
+        resolvedNextPath
       )}&session_token=${encodeURIComponent(activeToken)}`;
 
       const { error: oauthErr } = await supabase.auth.signInWithOAuth({
@@ -113,7 +130,7 @@ export function SoftAuthModal({
 
       if (!otpSent) {
         const emailRedirectTo = `${window.location.origin}/auth/callback?next=${encodeURIComponent(
-          `/unlock/${sessionId}`
+          resolvedNextPath
         )}&session_token=${encodeURIComponent(activeToken)}`;
 
         const { error: otpErr } = await supabase.auth.signInWithOtp({
@@ -182,11 +199,12 @@ export function SoftAuthModal({
         </div>
 
         <h3 className="mt-3 font-serif text-[26px] leading-tight text-[#FDF6EE]">
-          Keep {firstName}&rsquo;s patterns private &amp; accessible anywhere.
+          {titleOverride ||
+            `Keep ${firstName}\u2019s patterns private & accessible anywhere.`}
         </h3>
         <p className="mt-2 text-[14px] leading-relaxed text-[#B8A99E]">
-          Create a quick private profile so your full 5-module Blueprint stays
-          saved—never shared or sold.
+          {descriptionOverride ||
+            "Create a quick private profile so your full 5-module Blueprint stays saved\u2014never shared or sold."}
         </p>
 
         {/* Google Auth Button */}

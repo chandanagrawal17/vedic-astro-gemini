@@ -35,6 +35,7 @@ export interface LocationOption {
 }
 
 export interface OnboardingInput {
+  email: string;
   firstName: string;
   birthDate: string; // YYYY-MM-DD
   birthCity: string;

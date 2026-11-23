@@ -112,6 +112,7 @@ export default function PreviewSessionPage() {
             body: JSON.stringify({
               chartId: stored?.chartId ?? sid,
               sessionToken: stored?.sessionToken ?? sid,
+              email: stored?.input.email,
               firstName: stored?.input.firstName,
               relationshipStatus: stored?.input.relationshipStatus,
               careerMode: stored?.input.careerMode,

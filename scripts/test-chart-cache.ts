@@ -104,6 +104,7 @@ async function runTests() {
   const createdTokens: string[] = [];
 
   const exactBirthPayload = {
+    email: `cache-exact-${Date.now()}@example.com`,
     firstName: "CacheTest",
     birthDate: "1984-05-11",
     birthCity: "Austin, TX",
@@ -119,6 +120,7 @@ async function runTests() {
   };
 
   const dateOnlyBirthPayload = {
+    email: `cache-dob-${Date.now()}@example.com`,
     firstName: "CacheDateOnly",
     birthDate: "1986-08-23",
     birthCity: "Seattle, WA",
@@ -242,6 +244,7 @@ async function runTests() {
     spy.reset();
     const res3 = await callCalculateEndpoint({
       ...exactBirthPayload,
+      email: `cache-exact-sess2-${Date.now()}@example.com`,
       firstName: "AnotherSession",
       sessionToken: token2,
     });
@@ -296,6 +299,7 @@ async function runTests() {
     spy.reset();
     const dobRes2 = await callCalculateEndpoint({
       ...dateOnlyBirthPayload,
+      email: `cache-dob-sess2-${Date.now()}@example.com`,
       sessionToken: token4,
     });
     assert.equal(dobRes2.status, 200);

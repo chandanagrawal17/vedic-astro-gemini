@@ -66,6 +66,7 @@ export const MOCK_CITIES: LocationOption[] = [
 ];
 
 export const DEFAULT_ONBOARDING_INPUT: OnboardingInput = {
+  email: "alex@example.com",
   firstName: "Alex",
   birthDate: "1994-08-14",
   birthCity: "Chicago, IL",

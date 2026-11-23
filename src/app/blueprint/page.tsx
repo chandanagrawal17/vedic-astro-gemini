@@ -276,6 +276,7 @@ function BlueprintHubContent() {
         body: JSON.stringify({
           chartId: calcData.chartId,
           sessionToken: calcData.sessionToken,
+          email: updatedInput.email,
           firstName: updatedInput.firstName,
           relationshipStatus: updatedInput.relationshipStatus,
           careerMode: updatedInput.careerMode,

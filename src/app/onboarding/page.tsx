@@ -3,6 +3,7 @@
 import React, { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { ArrowLeft, ArrowRight, Check, MapPin } from "lucide-react";
+import { z } from "zod";
 import { SolarShell } from "@/components/ui/SolarShell";
 import { ObsidianCard } from "@/components/ui/ObsidianCard";
 import {
@@ -55,6 +56,7 @@ export default function OnboardingPage() {
 
   // Step 1 state
   const [fullName, setFullName] = useState("");
+  const [email, setEmail] = useState("");
   const [birthDate, setBirthDate] = useState("");
   const [cityQuery, setCityQuery] = useState("");
   const [selectedCity, setSelectedCity] = useState<LocationOption | null>(null);
@@ -131,6 +133,18 @@ export default function OnboardingPage() {
       setStep1Error("Please enter or select your birth city.");
       return;
     }
+    const emailValidation = z
+      .string()
+      .trim()
+      .email("Please enter a valid email address.")
+      .safeParse(email);
+    if (!emailValidation.success) {
+      setStep1Error(
+        emailValidation.error.issues[0]?.message ||
+          "Please enter a valid email address."
+      );
+      return;
+    }
     setStep1Error("");
     setStep(2);
   };
@@ -149,6 +163,7 @@ export default function OnboardingPage() {
     const firstNameOnly = fullName.trim().split(/\s+/)[0] || fullName.trim();
 
     const payload: OnboardingInput = {
+      email: email.trim(),
       firstName: firstNameOnly,
       birthDate,
       birthCity: cityObj.cityName,
@@ -361,6 +376,30 @@ export default function OnboardingPage() {
                     core patterns without guessing exact-minute details.
                   </p>
                 )}
+              </div>
+
+              {/* Email */}
+              <div>
+                <label
+                  htmlFor="onboarding-email"
+                  className="block text-[12px] font-medium text-[#B8A99E]"
+                >
+                  Email
+                </label>
+                <input
+                  id="onboarding-email"
+                  type="email"
+                  required
+                  autoComplete="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="alex@domain.com"
+                  className="mt-1.5 w-full rounded-xl border border-[#F5A65B]/20 bg-[#120C09] px-3.5 py-3 text-[15px] text-[#FDF6EE] placeholder:text-[#7C6E65] focus:border-[#FF6B2B] focus:outline-none"
+                />
+                <p className="mt-1.5 text-[11px] leading-relaxed text-[#8E7F75]">
+                  Used only to save your private Blueprint and prevent duplicate
+                  readings.
+                </p>
               </div>
             </ObsidianCard>
 

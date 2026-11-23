@@ -1,10 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { AstroProviderError } from "@/lib/astro/vedicAstroProvider";
+import { ExistingPaidAccountError } from "@/lib/cache/blueprintCache";
 import { calculateAndPersistChart } from "@/lib/supabase/chartSession";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 const CalculateChartSchema = z.object({
+  email: z.string().trim().email("Please enter a valid email address.").max(254),
   firstName: z.string().trim().min(1).max(80),
   birthDate: z.string().trim().min(8).max(20),
   birthCity: z.string().trim().min(1).max(160),
@@ -60,10 +62,12 @@ export async function POST(req: NextRequest) {
     const sessionToken = parsed.data.sessionToken ?? cookieToken;
 
     let userId: string | null = null;
+    let userEmail: string | null = null;
     try {
       const supabase = await createSupabaseServerClient();
       const { data } = await supabase.auth.getUser();
       userId = data.user?.id ?? null;
+      userEmail = data.user?.email ?? null;
     } catch {
       // Anonymous onboarding session
     }
@@ -72,6 +76,7 @@ export async function POST(req: NextRequest) {
       ...parsed.data,
       sessionToken,
       userId,
+      userEmail,
     });
 
     const response = NextResponse.json(result, { status: 200 });
@@ -85,6 +90,16 @@ export async function POST(req: NextRequest) {
 
     return response;
   } catch (err) {
+    if (err instanceof ExistingPaidAccountError) {
+      return NextResponse.json(
+        {
+          status: err.status,
+          message: err.message,
+        },
+        { status: err.statusCode }
+      );
+    }
+
     if (err instanceof AstroProviderError) {
       return NextResponse.json(
         {

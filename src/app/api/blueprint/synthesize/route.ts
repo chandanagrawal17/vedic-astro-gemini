@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
+import { ExistingPaidAccountError } from "@/lib/cache/blueprintCache";
 import { LlmProviderError } from "@/lib/llm/geminiProvider";
 import {
   BlueprintServiceError,
@@ -10,6 +11,7 @@ import { createSupabaseServerClient } from "@/lib/supabase/server";
 const SynthesizeRequestSchema = z.object({
   chartId: z.string().trim().min(4).max(128),
   sessionToken: z.string().trim().min(4).max(128).optional(),
+  email: z.string().trim().email().max(254).optional(),
   firstName: z.string().trim().min(1).max(80).optional(),
   relationshipStatus: z
     .enum(["single", "relationship", "married", "shifting"])
@@ -42,10 +44,12 @@ export async function POST(req: NextRequest) {
       null;
 
     let userId: string | null = null;
+    let userEmail: string | null = null;
     try {
       const supabase = await createSupabaseServerClient();
       const { data } = await supabase.auth.getUser();
       userId = data.user?.id ?? null;
+      userEmail = data.user?.email ?? null;
     } catch {
       // Anonymous session
     }
@@ -53,7 +57,9 @@ export async function POST(req: NextRequest) {
     const result = await synthesizeAndPersistBlueprint({
       chartId: parsed.data.chartId,
       sessionToken,
+      email: parsed.data.email,
       userId,
+      userEmail,
       profileOverride: {
         firstName: parsed.data.firstName,
         relationshipStatus: parsed.data.relationshipStatus,
@@ -73,6 +79,16 @@ export async function POST(req: NextRequest) {
 
     return response;
   } catch (err) {
+    if (err instanceof ExistingPaidAccountError) {
+      return NextResponse.json(
+        {
+          status: err.status,
+          message: err.message,
+        },
+        { status: err.statusCode }
+      );
+    }
+
     if (err instanceof LlmProviderError) {
       return NextResponse.json(
         {

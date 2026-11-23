@@ -41,10 +41,12 @@ export async function POST(
       null;
 
     let userId: string | null = null;
+    let userEmail: string | null = null;
     try {
       const supabase = await createSupabaseServerClient();
       const { data } = await supabase.auth.getUser();
       userId = data.user?.id ?? null;
+      userEmail = data.user?.email ?? null;
     } catch {
       // Anonymous session
     }
@@ -53,6 +55,7 @@ export async function POST(
       chartIdOrToken: chartId,
       feedback: parsed.data.feedback,
       userId,
+      userEmail,
       sessionToken,
     });
 
