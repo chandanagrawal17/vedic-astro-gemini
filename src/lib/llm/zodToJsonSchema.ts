@@ -24,20 +24,9 @@ function convertZodType(zodType: z.ZodTypeAny): JsonSchemaObject {
     const isInt =
       Array.isArray(def.checks) &&
       def.checks.some((c: { kind?: string }) => c.kind === "int");
-    const base: JsonSchemaObject = { type: isInt ? "integer" : "number" };
-    if (Array.isArray(def.checks)) {
-      for (const check of def.checks as Array<{
-        kind?: string;
-        value?: number;
-      }>) {
-        if (check.kind === "min" && typeof check.value === "number") {
-          base.minimum = check.value;
-        } else if (check.kind === "max" && typeof check.value === "number") {
-          base.maximum = check.value;
-        }
-      }
-    }
-    return withDescription(base, description);
+    // Omit minimum/maximum bounds from Gemini's constrained-decoding JSON schema
+    // to prevent FSM state explosion; Zod enforces exact numeric bounds on parse.
+    return withDescription({ type: isInt ? "integer" : "number" }, description);
   }
 
   if (zodType instanceof z.ZodBoolean) {
@@ -69,25 +58,15 @@ function convertZodType(zodType: z.ZodTypeAny): JsonSchemaObject {
 
   if (zodType instanceof z.ZodArray) {
     const inner = convertZodType(def.type as z.ZodTypeAny);
-    const out: JsonSchemaObject = {
-      type: "array",
-      items: inner,
-    };
-    const minLen = def.minLength as { value?: number } | null | undefined;
-    const maxLen = def.maxLength as { value?: number } | null | undefined;
-    const exactLen = def.exactLength as { value?: number } | null | undefined;
-    if (exactLen && typeof exactLen.value === "number") {
-      out.minItems = exactLen.value;
-      out.maxItems = exactLen.value;
-    } else {
-      if (minLen && typeof minLen.value === "number") {
-        out.minItems = minLen.value;
-      }
-      if (maxLen && typeof maxLen.value === "number") {
-        out.maxItems = maxLen.value;
-      }
-    }
-    return withDescription(out, description);
+    // Omit minItems/maxItems from Gemini's responseJsonSchema to avoid
+    // nested array FSM state explosion; Zod validates exact lengths on parse.
+    return withDescription(
+      {
+        type: "array",
+        items: inner,
+      },
+      description
+    );
   }
 
   if (zodType instanceof z.ZodTuple) {
@@ -97,8 +76,6 @@ function convertZodType(zodType: z.ZodTypeAny): JsonSchemaObject {
       {
         type: "array",
         items: firstItem,
-        minItems: items.length,
-        maxItems: items.length,
       },
       description
     );

@@ -218,4 +218,11 @@ test("zodToJsonSchema generates valid JSON Schema for SynthesizedBlueprintSchema
   ]);
   assert.ok(jsonSchema.properties.hook_proof_json);
   assert.ok(jsonSchema.properties.full_blueprint_json);
+
+  // Ensure Gemini FSM-exploding constraints are omitted from responseJsonSchema
+  const serialized = JSON.stringify(jsonSchema);
+  assert.equal(serialized.includes('"minItems"'), false);
+  assert.equal(serialized.includes('"maxItems"'), false);
+  assert.equal(serialized.includes('"minimum"'), false);
+  assert.equal(serialized.includes('"maximum"'), false);
 });
