@@ -13,6 +13,7 @@ import {
   normalizeRelationshipStatus,
   RelationshipTelemetry,
 } from "@/lib/astro/relationshipEngine";
+import { matchChartRules } from "@/lib/astro/ruleMatcher";
 import { NormalizedChartJson } from "@/lib/astro/types";
 import {
   RelationshipDeepDivePayload,
@@ -53,6 +54,8 @@ export interface SynthesizeBlueprintInput {
   normalizedChart: NormalizedChartJson;
   profile: BlueprintUserProfileContext;
   referenceDate?: Date;
+  /** Optional whole-sign house of today's transiting Moon (1–12) for bandwidth guidance. */
+  transitMoonHouse?: number;
 }
 
 export interface SynthesizeBlueprintResult {
@@ -198,6 +201,11 @@ export function buildChartSignalPayload(
     hardResetTelemetry,
     relationshipTelemetry,
     careerTelemetry,
+    // Deterministic rulebook grounding (zero PII: name is never passed; DOB only yields a 1–9 digit).
+    matchedKnowledgeContext: matchChartRules(normalizedChart, {
+      dob: profile.dobIso ?? undefined,
+      transitMoonHouse: input.transitMoonHouse,
+    }),
     exactAnchorsToPreserveVerbatim: {
       hardResetPrimaryYearRange:
         hardResetTelemetry.selected_chapters[0]?.year_range ??
@@ -315,6 +323,12 @@ ABSOLUTE JARGON BAN (STRICTLY ENFORCED BY AUTOMATED SCANNER):
 You MUST NEVER output ANY of the following words or concepts anywhere in any JSON string value (including titles, badges, pills, or summaries):
 - Any astrology, horoscope, zodiac, planetary, Sanskrit, Ayurvedic, or numerology terms: astrology, astrological, horoscope, vedic, jyotish, zodiac, planet, planets, planetary, transit, transits, eclipse, lagna, ascendant, rising sign, rashi, dasha, mahadasha, antardasha, nakshatra, pada, kundali, kundli, rahu, ketu, shani, saturn, mangal, mars, shukra, venus, budha, mercury, surya, chandra, guru, jupiter, pluto, uranus, neptune, retrograde, sade sati, dhaiya, panauti, dusthana, kendra, trikona, navamsha, navamsa, dashamsha, dashamsa, upapada, arudha, karma, karmic, upaay, mantra, chakra, remedy, pitta, vata, kapha, dosha, dharma, numerology, life path number, any zodiac sign name (Aries..Pisces or Mesha..Meena), or any numbered house ("1st house" .. "12th house").
 - Any fatalistic or clinical terms: divorce, infidelity, cheating, unfaithful, doomed to fail, breakup is inevitable, cursed in love, destined to be alone, cursed, doomed, bad luck, unlucky, early death, clinical depression, diagnose, therapy, therapist.
+
+KNOWLEDGE GROUNDING RULE (matched_knowledge_context):
+- Ground all behavioral insights, blind spots, relationship dynamics, career guidance, and somatic reset tips in \`matchedKnowledgeContext\` (matched_knowledge_context) and the chart signals (normalized_chart_json → internalCalculationSignals + telemetry). Synthesize them naturally into warm, everyday US mentor language—never copy rule strings verbatim and never leak any banned astrology, Sanskrit, or clinical terms.
+- Use nakshatraTraits (coreImpulse / strength / blindSpot / gunaEmphasis / coreDrive) to sharpen Hook #2 tells and Hook #4 loop naming; planetPatterns + activeHouses for Hook #1 and Hook #3 themes; relationship.coreLenses + frictionGuardrails for Hook #2 (never treat any single signal as a fixed verdict); wellness.stressSignature + dailyReset + somaticReset for nervous-system tells and antidote steps; timing.currentChapterDignity.pacingSignal for Hook #5 pacing tone.
+- Keys and labels inside matchedKnowledgeContext (e.g. dosha names, guna keys, house numbers, period lords) are INTERNAL ONLY and must never appear in output.
+- If numerologyFallback is present (no exact birth time), lean on its theme and growthEdge for core character texture instead of inventing chart detail.
 
 ${precisionConstraint}
 
@@ -743,14 +757,16 @@ export async function synthesizeRelationshipOnly(
     input.referenceDate ?? new Date()
   );
 
-  const systemPrompt = `You are translating \`relationshipTelemetry\` into \`hookProofRelationship\` (FREE) and \`fullBlueprintRelationship\` (PAID) using the literal placeholder ${FIRST_NAME_PLACEHOLDER} for the user's name.
+  const systemPrompt = `You are translating \`relationshipTelemetry\` and \`matchedKnowledgeContext\` into \`hookProofRelationship\` (FREE) and \`fullBlueprintRelationship\` (PAID) using the literal placeholder ${FIRST_NAME_PLACEHOLDER} for the user's name.
 ABSOLUTE JARGON BAN: Never output any astrology, Sanskrit, planet, sign, house, numerology, or fatalistic/clinical terms.
+KNOWLEDGE GROUNDING RULE: Ground all behavioral insights, blind spots, relationship dynamics, and somatic reset tips in \`matchedKnowledgeContext\` and \`relationshipTelemetry\`. Synthesize them naturally into warm, everyday US mentor language—never copy rule strings verbatim and never leak any banned astrology, Sanskrit, or clinical terms.
 ${buildRelationshipPromptSection(FIRST_NAME_PLACEHOLDER, canonicalStatus)}`;
 
   const userPayload = {
     firstName: FIRST_NAME_PLACEHOLDER,
     relationshipStatus: canonicalStatus,
     relationshipTelemetry,
+    matchedKnowledgeContext: matchChartRules(input.normalizedChart),
   };
 
   let llmCallsMade = 1;
