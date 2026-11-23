@@ -11,7 +11,7 @@ export const LockedMonthlyTeaserSchema = z.object({
   title: z
     .string()
     .min(3)
-    .max(60)
+    .max(90)
     .describe("3-5 word visceral flashpoint title to create curiosity without revealing the month."),
 });
 
@@ -19,34 +19,34 @@ export const HardResetProofSchema = z.object({
   primaryYearRange: z
     .string()
     .min(4)
-    .max(24)
+    .max(32)
     .describe("Exact yearly span only, e.g. '2022 – 2023'. NEVER include months or seasons."),
-  primaryChapterTitle: z.string().min(3).max(75),
-  introHook: z.string().min(15).max(200),
+  primaryChapterTitle: z.string().min(3).max(110),
+  introHook: z.string().min(15).max(340),
   concreteRealLifeThemes: z
-    .array(z.string().min(20).max(260))
+    .array(z.string().min(20).max(380))
     .min(2)
     .max(3)
     .describe("2-3 sharp, personalized everyday life themes for this yearly stretch. Zero clichés, zero month names."),
   whatItRewired: z
     .string()
     .min(15)
-    .max(240)
+    .max(340)
     .describe("1 crisp sentence on the lasting shift this yearly chapter forged."),
   secondaryYearWindow: z.object({
-    yearRange: z.string().min(4).max(24).describe("Yearly span only, e.g. '2020 – 2021'."),
-    chapterTitle: z.string().min(3).max(75),
-    oneLineSnapshot: z.string().min(15).max(220),
+    yearRange: z.string().min(4).max(32).describe("Yearly span only, e.g. '2020 – 2021'."),
+    chapterTitle: z.string().min(3).max(110),
+    oneLineSnapshot: z.string().min(15).max(340),
   }),
   lockedMonthlyTimelineTeaser: z.object({
     totalLockedFlashpoints: z.number().int().min(3).max(16),
-    lockedChaptersSpan: z.string().min(4).max(30).describe("e.g., '2014 – 2023'"),
+    lockedChaptersSpan: z.string().min(4).max(40).describe("e.g., '2014 – 2023'"),
     previewItems: z
       .array(LockedMonthlyTeaserSchema)
       .min(2)
       .max(3)
       .describe("2-3 blurred-date teaser titles from the primary chapter. Year only, NO month names."),
-    paywallCtaLine: z.string().min(15).max(190),
+    paywallCtaLine: z.string().min(15).max(300),
   }),
 });
 
@@ -60,12 +60,12 @@ export const PaidMonthlyFlashpointSchema = z.object({
   title: z
     .string()
     .min(3)
-    .max(60)
+    .max(90)
     .describe("3-5 word visceral title matching or deepening the locked teaser."),
   realLifeEvent: z
     .string()
     .min(25)
-    .max(300)
+    .max(420)
     .describe("1-2 sharp sentences naming concrete everyday events, emotions, or physical signals."),
 });
 
@@ -81,30 +81,36 @@ export const HardResetPaidChapterSchema = z.object({
   howItFeltInside: z
     .string()
     .min(25)
-    .max(320)
+    .max(440)
     .describe("Internal psychology + somatic/nervous-system stress signals (sleep, digestion, mental heat, fatigue)."),
   whatItRewired: z
     .string()
     .min(20)
-    .max(280)
+    .max(380)
     .describe("Earned resilience AND the leftover survival reflex to watch out for today."),
 });
 
 export const HardResetDeepDiveSchema = z.object({
-  chapters: z.array(HardResetPaidChapterSchema).min(2).max(4),
+  chapters: z
+    .array(HardResetPaidChapterSchema)
+    .min(2)
+    .max(4)
+    .describe(
+      "REQUIRED: Emit one entry for EVERY chapter in hardResetTelemetry.selected_chapters (minimum 2, up to 4 chapters; never emit only 1)."
+    ),
   corePatternThread: z
     .string()
     .min(20)
-    .max(300)
+    .max(420)
     .describe("1-2 sentences tying all reset chapters into one coherent evolution story."),
   nextPressureWindow: z.object({
     monthRange: z.string().min(4).max(40).describe("Exact upcoming 2-to-3-month window copied verbatim from telemetry."),
-    windowTitle: z.string().min(3).max(65),
-    whatToExpect: z.string().min(20).max(280),
+    windowTitle: z.string().min(3).max(100),
+    whatToExpect: z.string().min(20).max(380),
     prepMoves: z.tuple([
-      z.string().min(10).max(160),
-      z.string().min(10).max(160),
-      z.string().min(10).max(160),
+      z.string().min(10).max(260),
+      z.string().min(10).max(260),
+      z.string().min(10).max(260),
     ]),
   }),
 });
@@ -122,39 +128,39 @@ export const CareerProofSchema = z.object({
   fitHeadline: z
     .string()
     .min(8)
-    .max(85)
+    .max(140)
     .describe("Warm, everyday mentor summary, e.g. 'Great at the job, hungry for something deeper'."),
   sweetSpotLabel: z
     .string()
     .min(6)
-    .max(70)
+    .max(110)
     .describe("Plain-English ideal mode, e.g. 'Problem-Solver -> Builder of Your Own Thing'."),
   whyYouAreGood: z
     .string()
     .min(25)
-    .max(280)
+    .max(400)
     .describe("1-2 friendly mentor sentences explaining their natural edge."),
   whyItFeelsEmptyOrShifting: z
     .string()
     .min(25)
-    .max(280)
+    .max(400)
     .describe("1-2 candid sentences naming the Competence Trap or transition clarity. Zero month names."),
   howWorkSeesYou: z
     .string()
     .min(25)
-    .max(260)
+    .max(380)
     .describe("1-2 relatable sentences naming the workplace perception gap."),
   lockedTeaser: z.object({
     fieldAuditQuestion: z
       .string()
       .min(8)
-      .max(90)
+      .max(130)
       .describe("e.g., 'Does Tech really fit you?' or 'Does your current track really fit you?'"),
     alternativeLanesCount: z.number().int().min(3).max(5),
     timingYearLabel: z
       .string()
       .regex(/^\d{4}(\s?[–-]\s?\d{4})?$/, "Year or year-span only (e.g. '2027' or '2026 – 2027'). NEVER include months."),
-    paywallCtaLine: z.string().min(12).max(170),
+    paywallCtaLine: z.string().min(12).max(280),
   }),
 });
 
@@ -166,14 +172,14 @@ export const CareerPathScoreItemSchema = z.object({
   honestMentorTake: z
     .string()
     .min(25)
-    .max(300)
+    .max(420)
     .describe("2 warm, plain-English sentences explaining why this score fits them right now."),
 });
 
 export const AlternativeLaneSchema = z.object({
   laneId: z.string().min(2),
-  laneName: z.string().min(3).max(70),
-  whyItFitsYou: z.string().min(25).max(260),
+  laneName: z.string().min(3).max(110),
+  whyItFitsYou: z.string().min(25).max(380),
 });
 
 export const ForwardCareerWindowSchema = z.object({
@@ -186,12 +192,12 @@ export const ForwardCareerWindowSchema = z.object({
   windowTitle: z
     .string()
     .min(4)
-    .max(65)
+    .max(100)
     .describe("Friendly, human label, e.g. 'Great Time to Put It Out There' or 'Watch Your Patience at Work'."),
   practicalGuidance: z
     .string()
     .min(30)
-    .max(310)
+    .max(420)
     .describe("2 warm, actionable mentor sentences on what to do and what to avoid in these exact months."),
 });
 
@@ -202,27 +208,27 @@ export const CareerDeepDiveSchema = z.object({
     .describe("Must contain day_job, going_solo, and hybrid_side_build with exact telemetry scores."),
   fieldAudit: z.object({
     statedFieldLabel: z.string().min(2).max(75),
-    whatFitsLikeAGlove: z.string().min(25).max(280),
-    whatIsMissing: z.string().min(25).max(280),
-    yourBestNextStep: z.string().min(30).max(300),
+    whatFitsLikeAGlove: z.string().min(25).max(400),
+    whatIsMissing: z.string().min(25).max(400),
+    yourBestNextStep: z.string().min(30).max(420),
   }),
   hiddenAlternativeLanes: z.array(AlternativeLaneSchema).min(3).max(5),
   perceptionGap: z.object({
-    insideYourHead: z.string().min(20).max(240),
-    whatCoworkersSee: z.string().min(20).max(240),
-    simpleShiftToTry: z.string().min(25).max(260),
+    insideYourHead: z.string().min(20).max(360),
+    whatCoworkersSee: z.string().min(20).max(360),
+    simpleShiftToTry: z.string().min(25).max(380),
   }),
   moneyAndLeaks: z.object({
-    howMoneyGrowsForYou: z.string().min(25).max(280),
-    quietHabitCostingYou: z.string().min(25).max(280),
+    howMoneyGrowsForYou: z.string().min(25).max(400),
+    quietHabitCostingYou: z.string().min(25).max(400),
   }),
   next12Months: z.object({
-    bigPictureSummary: z.string().min(30).max(300),
+    bigPictureSummary: z.string().min(30).max(420),
     tightMonthlyWindows: z.array(ForwardCareerWindowSchema).min(2).max(4),
     mindBodyPacingTip: z
       .string()
       .min(25)
-      .max(280)
+      .max(400)
       .describe("1 grounded everyday habit to protect sleep, nerves, and focus without burnout."),
   }),
 });
@@ -235,17 +241,17 @@ export const RelationshipProofSchema = z.object({
   lovableContradictionHeadline: z
     .string()
     .min(18)
-    .max(95)
+    .max(140)
     .describe("Warm, playful contradiction headline contrasting outer armor vs. inner heart."),
   caughtRedHandedTell: z
     .string()
     .min(55)
-    .max(260)
+    .max(440)
     .describe("Hyper-specific texting, date-night, or everyday interaction habit that makes them laugh and feel seen."),
   somaticBodyTell: z
     .string()
     .min(45)
-    .max(240)
+    .max(360)
     .describe("Concrete physical/nervous-system tell when emotional uncertainty or tension hits."),
   pastLoveShift: z.object({
     yearRange: z
@@ -254,20 +260,20 @@ export const RelationshipProofSchema = z.object({
     whatShifted: z
       .string()
       .min(50)
-      .max(240)
+      .max(360)
       .describe("Warm, relatable reflection on how their standards or love life shifted in that yearly stretch."),
-    accuracyPrompt: z.string().min(12).max(115),
+    accuracyPrompt: z.string().min(12).max(160),
   }),
   halfUnlockedCliffhanger: z.object({
     unlockedHalf: z
       .string()
       .min(35)
-      .max(190)
+      .max(300)
       .describe("Give away who sparks their interest or what makes them click to prove accuracy."),
     lockedHalfTeaser: z
       .string()
       .min(30)
-      .max(160)
+      .max(260)
       .describe("Curiosity gap teasing the exact trait/loop unlocked in the $19 guide."),
   }),
   lockedTimingYearLabel: z
@@ -282,56 +288,62 @@ export const ForwardLoveWindowSchema = z.object({
     .min(5)
     .max(40)
     .describe("Exact 1-to-3-month range copied verbatim from relationshipTelemetry.paidLayerSignals.forward12mTiming."),
-  windowTitle: z.string().min(5).max(55),
-  practicalGuidance: z.string().min(55).max(270),
+  windowTitle: z.string().min(5).max(95),
+  practicalGuidance: z.string().min(55).max(380),
 });
 
 export const SharedPaidRelationshipTimingSchema = z.object({
-  bigPictureSummary: z.string().min(50).max(260),
-  tightMonthlyWindows: z.array(ForwardLoveWindowSchema).min(2).max(4),
+  bigPictureSummary: z.string().min(50).max(380),
+  tightMonthlyWindows: z
+    .array(ForwardLoveWindowSchema)
+    .min(2)
+    .max(4)
+    .describe(
+      "REQUIRED: Emit 2 to 4 upcoming monthly timing windows matching telemetry verbatim (minimum 2)."
+    ),
 });
 
 export const SinglePaidRelationshipSchema = z.object({
   relationshipStatus: z.literal("single"),
   sparkVsPeace: z.object({
-    whoCatchesYourEye: z.string().min(45).max(230),
-    whereTheGapHides: z.string().min(55).max(260),
-    whatToStopExcusing: z.string().min(40).max(210),
+    whoCatchesYourEye: z.string().min(45).max(360),
+    whereTheGapHides: z.string().min(55).max(380),
+    whatToStopExcusing: z.string().min(40).max(320),
   }),
   singleBlindSpot: z.object({
-    loopName: z.string().min(5).max(60),
-    howItPlaysOut: z.string().min(60).max(280),
-    gentleMentorReset: z.string().min(50).max(250),
+    loopName: z.string().min(5).max(95),
+    howItPlaysOut: z.string().min(60).max(400),
+    gentleMentorReset: z.string().min(50).max(360),
   }),
-  greenFlagBodyCheck: z.string().min(50).max(240),
+  greenFlagBodyCheck: z.string().min(50).max(360),
   next12Months: SharedPaidRelationshipTimingSchema,
 });
 
 export const DatingPaidRelationshipSchema = z.object({
   relationshipStatus: z.literal("dating"),
   realAlignmentCheck: z.object({
-    sparkVsPace: z.string().min(55).max(260),
-    threeAlignmentSigns: z.array(z.string().min(25).max(160)).length(3),
+    sparkVsPace: z.string().min(55).max(380),
+    threeAlignmentSigns: z.array(z.string().min(25).max(260)).length(3),
   }),
   earlyDatingFriction: z.object({
-    loopName: z.string().min(5).max(60),
-    howItShowsUp: z.string().min(55).max(260),
-    tenSecondShift: z.string().min(50).max(250),
+    loopName: z.string().min(5).max(95),
+    howItShowsUp: z.string().min(55).max(380),
+    tenSecondShift: z.string().min(50).max(360),
   }),
-  pacingAndBoundariesTip: z.string().min(50).max(240),
+  pacingAndBoundariesTip: z.string().min(50).max(360),
   next12Months: SharedPaidRelationshipTimingSchema,
 });
 
 export const MarriedPaidRelationshipSchema = z.object({
   relationshipStatus: z.literal("married"),
   marriageBlueprint: z.object({
-    whereYouTrulyClick: z.string().min(55).max(260),
-    silentFrictionPoint: z.string().min(60).max(270),
-    leavingOutsideStressAtDoor: z.string().min(50).max(250),
+    whereYouTrulyClick: z.string().min(55).max(380),
+    silentFrictionPoint: z.string().min(60).max(400),
+    leavingOutsideStressAtDoor: z.string().min(50).max(360),
   }),
   tenSecondShift: z.object({
-    exactPhraseToTry: z.string().min(30).max(190),
-    whyItSoftensTheRoom: z.string().min(45).max(240),
+    exactPhraseToTry: z.string().min(30).max(300),
+    whyItSoftensTheRoom: z.string().min(45).max(360),
   }),
   next12Months: SharedPaidRelationshipTimingSchema,
 });

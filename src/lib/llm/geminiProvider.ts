@@ -11,7 +11,8 @@ export class LlmProviderError extends Error {
   constructor(
     message: string,
     public readonly statusCode = 502,
-    public readonly isTimeout = false
+    public readonly isTimeout = false,
+    public readonly isZodValidation = false
   ) {
     super(message);
     this.name = "LlmProviderError";
@@ -124,7 +125,9 @@ export class GeminiLlmProvider implements LlmProvider {
           .join("; ");
         throw new LlmProviderError(
           `Gemini (${model}) output failed Zod validation (${issues}).`,
-          502
+          502,
+          false,
+          true
         );
       }
 
@@ -179,37 +182,51 @@ export class GeminiLlmProvider implements LlmProvider {
         ? userPayload
         : JSON.stringify(userPayload, null, 2);
 
-    const invokeWith429Retry = async (
+    const runAttempt = (
       model: string,
+      promptContent: string,
       attemptTimeout: number
+    ) =>
+      this.invokeModel(
+        ai,
+        model,
+        systemPrompt,
+        promptContent,
+        jsonSchema,
+        schema,
+        options,
+        attemptTimeout
+      );
+
+    const invokeWithRetries = async (
+      model: string,
+      attemptTimeout: number,
+      retryOn503: boolean
     ): Promise<T> => {
       try {
-        return await this.invokeModel(
-          ai,
-          model,
-          systemPrompt,
-          userContent,
-          jsonSchema,
-          schema,
-          options,
-          attemptTimeout
-        );
+        return await runAttempt(model, userContent, attemptTimeout);
       } catch (err) {
         if (err instanceof LlmProviderError && err.statusCode === 429) {
           console.warn(
             `[GeminiLlmProvider] HTTP 429 on ${model}; backing off ${this.rateLimitBackoffMs}ms and retrying 1x.`
           );
           await new Promise((r) => setTimeout(r, this.rateLimitBackoffMs));
-          return await this.invokeModel(
-            ai,
-            model,
-            systemPrompt,
-            userContent,
-            jsonSchema,
-            schema,
-            options,
-            attemptTimeout
+          return await runAttempt(model, userContent, attemptTimeout);
+        }
+        if (err instanceof LlmProviderError && err.statusCode === 503 && retryOn503) {
+          const backoffMs = 2500;
+          console.warn(
+            `[GeminiLlmProvider] HTTP 503 on ${model}; backing off ${backoffMs}ms and retrying 1x.`
           );
+          await new Promise((r) => setTimeout(r, backoffMs));
+          return await runAttempt(model, userContent, attemptTimeout);
+        }
+        if (err instanceof LlmProviderError && err.isZodValidation) {
+          console.warn(
+            `[GeminiLlmProvider] Schema validation failed on ${model}; retrying 1x with repair hint: ${err.message}`
+          );
+          const repairedUserContent = `${userContent}\n\nSCHEMA VALIDATION REPAIR INSTRUCTION (CRITICAL):\nYour previous JSON response failed strict schema validation:\n${err.message}\nRegenerate the complete valid JSON fixing every reported field count/constraint while keeping all telemetry IDs, scores, and date strings verbatim.`;
+          return await runAttempt(model, repairedUserContent, attemptTimeout);
         }
         throw err;
       }
@@ -222,27 +239,18 @@ export class GeminiLlmProvider implements LlmProvider {
     let lastErr: unknown;
     for (let i = 0; i < modelsToTry.length; i++) {
       const model = modelsToTry[i];
+      const isLastAttempt = i === modelsToTry.length - 1;
       const attemptTimeout =
-        i === 0 && this.fallbackModel ? Math.min(timeoutMs, 15000) : timeoutMs;
+        i === 0 && this.fallbackModel
+          ? Math.min(timeoutMs, 15000)
+          : Math.max(timeoutMs, 35000);
       try {
-        if (model === this.primaryModel && i === 0) {
-          return await invokeWith429Retry(model, attemptTimeout);
-        }
-        return await this.invokeModel(
-          ai,
-          model,
-          systemPrompt,
-          userContent,
-          jsonSchema,
-          schema,
-          options,
-          attemptTimeout
-        );
+        return await invokeWithRetries(model, attemptTimeout, isLastAttempt);
       } catch (err) {
         lastErr = err;
         const canFallback =
           err instanceof LlmProviderError &&
-          (err.statusCode === 503 || err.isTimeout);
+          (err.statusCode === 503 || err.statusCode === 429 || err.isTimeout);
         if (!canFallback || i === modelsToTry.length - 1) {
           throw err;
         }
