@@ -14,5 +14,4 @@ next-env.d.ts
 .DS_Store
 
 # Excluded project folders
-/docs/
 /mockups/
