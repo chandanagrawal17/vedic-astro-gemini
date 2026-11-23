@@ -1,0 +1,57 @@
+{
+  "meta": {
+    "file": "numerology_fallback.json",
+    "sources": [
+      "2015.70770.Cheiros-Book-Of-Numbers.pdf"
+    ],
+    "use_case": "Fallback profile when a user does not know their birth time[cite: 1, 4]."
+  },
+  "chaldean_letter_map": {
+    "A": 1, "I": 1, "J": 1, "Q": 1, "Y": 1,
+    "B": 2, "K": 2, "R": 2,
+    "C": 3, "G": 3, "L": 3, "S": 3,
+    "D": 4, "M": 4, "T": 4,
+    "E": 5, "H": 5, "N": 5, "X": 5,
+    "U": 6, "V": 6, "W": 6,
+    "O": 7, "Z": 7,
+    "F": 8, "P": 8
+  },
+  "single_digit_profiles": {
+    "1": {
+      "theme": "Self-direction, initiative, and standing on one's own judgment[cite: 4].",
+      "growth_edge": "Avoiding stubborn isolation and staying open to trusted input."
+    },
+    "2": {
+      "theme": "Sensitivity, cooperation, and reading subtle emotional shifts[cite: 4].",
+      "growth_edge": "Not letting over-sensitivity or second-guessing stall action."
+    },
+    "3": {
+      "theme": "Expression, creativity, ambition, and lively social energy[cite: 4].",
+      "growth_edge": "Focusing creative energy on completion rather than spreading too thin."
+    },
+    "4": {
+      "theme": "Practical structure, unconventional perspective, and steady effort[cite: 4].",
+      "growth_edge": "Avoiding rigid friction or unnecessary resistance during change."
+    },
+    "5": {
+      "theme": "Adaptability, curiosity, movement, and quick mental shifts[cite: 4].",
+      "growth_edge": "Creating grounding routines so constant change does not cause mental fatigue."
+    },
+    "6": {
+      "theme": "Care, harmony, responsibility, and creative balance[cite: 4].",
+      "growth_edge": "Keeping healthy personal boundaries so caring for others does not drain you."
+    },
+    "7": {
+      "theme": "Reflection, inner analysis, quiet intuition, and depth[cite: 4].",
+      "growth_edge": "Stepping out of overthinking into simple, grounded action[cite: 4]."
+    },
+    "8": {
+      "theme": "Endurance, material responsibility, authority, and long-game discipline[cite: 4].",
+      "growth_edge": "Balancing heavy work and serious duty with genuine rest."
+    },
+    "9": {
+      "theme": "Drive, courage, decisive action, and passionate commitment[cite: 4].",
+      "growth_edge": "Pacing fiery urgency so impulse does not create avoidable friction."
+    }
+  }
+}

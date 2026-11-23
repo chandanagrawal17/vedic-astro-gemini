@@ -1,0 +1,45 @@
+{
+  "meta": {
+    "file": "ayurveda_and_resets.json",
+    "sources": [
+      "The Complete Book of Ayurvedic Home Remedies - Vasant Lad.pdf",
+      "vigyan-bhairava-tantra.pdf",
+      "vedic_astro_textbook.pdf"
+    ],
+    "scope_note": "Wellness, daily routine (Dinacharya), stress pacing, and somatic resets only—not medical diagnosis or clinical treatment[cite: 1, 7]."
+  },
+  "dosha_profiles": {
+    "vata": {
+      "elements": "Space and air[cite: 1, 7]",
+      "stress_signature": "Restless thoughts, overstimulation, scattered focus, light or disrupted sleep[cite: 1, 7].",
+      "daily_reset": [
+        "Keep regular wake, meal, and wind-down times (aiming to wind down by ~10 PM)[cite: 1].",
+        "Choose warm, grounding meals and warm drinks over cold, rushed, or overly caffeinated habits[cite: 1].",
+        "Practice slow, steady breathing and step away from noisy or fragmented screens[cite: 1]."
+      ]
+    },
+    "pitta": {
+      "elements": "Fire and water[cite: 1, 7]",
+      "stress_signature": "Inner heat, sharp impatience, overwork, or reactive irritation when pushed too hard[cite: 1, 7].",
+      "daily_reset": [
+        "Take cooling pauses, step outside for fresh air, and avoid over-scheduling back-to-back battles[cite: 1].",
+        "Favor cooling, soothing foods and calm hydration when feeling overheated or driven[cite: 1].",
+        "Use slow, cooling breathwork and deliberate unclenching before replying[cite: 1]."
+      ]
+    },
+    "kapha": {
+      "elements": "Water and earth[cite: 1, 7]",
+      "stress_signature": "Mental heaviness, sluggishness, resistance to starting, or comfort-seeking inertia[cite: 1, 7].",
+      "daily_reset": [
+        "Start the day with brisk movement or a walk rather than lingering in heavy inertia[cite: 1].",
+        "Keep mornings light and structured with small, clear first steps[cite: 1].",
+        "Use energizing, rhythmic breathwork to lift mental fog[cite: 1]."
+      ]
+    }
+  },
+  "somatic_90_second_reset": {
+    "step_1_body_anchor": "Drop your shoulders, unclench your jaw, let your tongue rest lightly, and press both feet flat into the floor to feel solid ground[cite: 12].",
+    "step_2_breath_pause": "Take a few slow, unforced breaths and notice the brief, quiet pause at the end of the exhale without straining[cite: 12].",
+    "step_3_witness_shift": "Step back from the racing thought or feeling—observe it as passing weather rather than an urgent command to react[cite: 12]."
+  }
+}

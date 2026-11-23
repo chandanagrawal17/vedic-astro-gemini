@@ -1,0 +1,251 @@
+{
+  "meta": {
+    "file": "nakshatras_and_gunas.json",
+    "sources": [
+      "Bepin Behari_Fundamentals of Vedic Astrology.pdf",
+      "vedic_astro_textbook.pdf"
+    ],
+    "framing": "modern self-awareness and emotional pacing"
+  },
+  "gunas": {
+    "sattva": {
+      "label": "Clarity & Balance",
+      "description": "Calm discernment, steadiness, and grounded perspective[cite: 1, 5].",
+      "rebalance_tip": "Protect quiet reflection time and simple daily structure[cite: 1, 5]."
+    },
+    "rajas": {
+      "label": "Momentum & Action",
+      "description": "Drive, initiative, restlessness, and desire to build or change things[cite: 1, 5].",
+      "rebalance_tip": "Channel active energy into clear priorities and deliberate pauses[cite: 1, 5]."
+    },
+    "tamas": {
+      "label": "Stillness & Inertia",
+      "description": "Heaviness, resistance to change, or deep rest/withdrawal[cite: 1, 5].",
+      "rebalance_tip": "Introduce gentle physical movement and small, low-friction steps[cite: 1, 5]."
+    }
+  },
+  "core_drives": {
+    "dharma": "Living in alignment with values, integrity, and authentic purpose[cite: 1].",
+    "artha": "Building practical capability, resources, and real-world stability[cite: 1].",
+    "kama": "Experiencing desire, affection, creativity, and life engagement[cite: 1].",
+    "moksha": "Releasing attachment, ego friction, and reactive compulsion[cite: 1]."
+  },
+  "nakshatras": [
+    {
+      "id": 1,
+      "name": "Ashwini",
+      "span": "00°00' Aries - 13°20' Aries[cite: 2]",
+      "core_impulse": "Fast starts, healing energy, and quick instinctual movement.",
+      "strength": "Decisive action and rapid recovery when starting fresh.",
+      "blind_spot": "Rushing ahead before reading the full situation."
+    },
+    {
+      "id": 2,
+      "name": "Bharani",
+      "span": "13°20' Aries - 26°40' Aries",
+      "core_impulse": "Carrying weight, containment, and deep emotional endurance.",
+      "strength": "Capacity to hold intense responsibility and see cycles through.",
+      "blind_spot": "Carrying emotional pressure alone until reaching a breaking point."
+    },
+    {
+      "id": 3,
+      "name": "Krittika",
+      "span": "26°40' Aries - 10°00' Taurus",
+      "core_impulse": "Sharp focus, cutting through noise, and refining what matters.",
+      "strength": "Clear standards, decisive pruning, and strong inner determination[cite: 1].",
+      "blind_spot": "Being overly sharp or critical when stressed."
+    },
+    {
+      "id": 4,
+      "name": "Rohini",
+      "span": "10°00' Taurus - 23°20' Taurus",
+      "core_impulse": "Nurturing growth, creativity, comfort, and steady cultivation[cite: 1].",
+      "strength": "Ability to grow ideas, craft, and relationships into lasting form[cite: 1].",
+      "blind_spot": "Clinging to comfort zones or over-indulging."
+    },
+    {
+      "id": 5,
+      "name": "Mrigashira",
+      "span": "23°20' Taurus - 06°40' Gemini",
+      "core_impulse": "Curiosity, searching, exploring options, and gentle inquiry[cite: 1].",
+      "strength": "Adaptable mind that keeps learning and testing possibilities.",
+      "blind_spot": "Restless second-guessing or scattering attention across too many options."
+    },
+    {
+      "id": 6,
+      "name": "Ardra",
+      "span": "06°40' Gemini - 20°00' Gemini",
+      "core_impulse": "Mental breakthroughs, clearing tension, and honest clarity.",
+      "strength": "Resilience after emotional storms and sharp insight.",
+      "blind_spot": "Internal storminess or over-analyzing conflict."
+    },
+    {
+      "id": 7,
+      "name": "Punarvasu",
+      "span": "20°00' Gemini - 03°20' Cancer[cite: 1]",
+      "core_impulse": "Renewal, returning to center, and practical restoration[cite: 1].",
+      "strength": "Optimistic reset after setbacks and supportive community energy[cite: 1].",
+      "blind_spot": "Assuring everything will work out without updating habits."
+    },
+    {
+      "id": 8,
+      "name": "Pushya",
+      "span": "03°20' Cancer - 16°40' Cancer",
+      "core_impulse": "Steady nourishment, protective care, and disciplined support.",
+      "strength": "Reliable mentorship, emotional steadiness, and long-term care.",
+      "blind_spot": "Over-giving to others while neglecting personal boundaries."
+    },
+    {
+      "id": 9,
+      "name": "Ashlesha",
+      "span": "16°40' Cancer - 00°00' Leo[cite: 1]",
+      "core_impulse": "Psychological depth, sharp intuition, and protective self-containment[cite: 1].",
+      "strength": "Reading unspoken dynamics and guarding inner autonomy[cite: 1].",
+      "blind_spot": "Defensive secrecy or taking perceived slights deeply to heart[cite: 1]."
+    },
+    {
+      "id": 10,
+      "name": "Magha",
+      "span": "00°00' Leo - 13°20' Leo",
+      "core_impulse": "Heritage, self-respect, dignity, and leadership presence.",
+      "strength": "Strong sense of identity, honor, and executive direction.",
+      "blind_spot": "Pride making it hard to ask for help or admit vulnerability."
+    },
+    {
+      "id": 11,
+      "name": "Purva Phalguni",
+      "span": "13°20' Leo - 26°40' Leo",
+      "core_impulse": "Warmth, enjoyment, creativity, and social connection.",
+      "strength": "Natural charm, joy in shared experiences, and creative spark.",
+      "blind_spot": "Seeking validation through applause or comfort."
+    },
+    {
+      "id": 12,
+      "name": "Uttara Phalguni",
+      "span": "26°40' Leo - 10°00' Virgo",
+      "core_impulse": "Commitment, partnership reliability, and constructive agreements.",
+      "strength": "Follow-through on promises and grounded collaboration.",
+      "blind_spot": "Carrying unspoken resentment when others do not match effort."
+    },
+    {
+      "id": 13,
+      "name": "Hasta",
+      "span": "10°00' Virgo - 23°20' Virgo",
+      "core_impulse": "Skillful hands-on craft, precision, and practical execution.",
+      "strength": "Attention to detail and turning plans into concrete results.",
+      "blind_spot": "Micromanaging or over-tweaking small details."
+    },
+    {
+      "id": 14,
+      "name": "Chitra",
+      "span": "23°20' Virgo - 06°40' Libra",
+      "core_impulse": "Design, craft, aesthetics, and structured creation.",
+      "strength": "Eye for form, balance, and building distinctive work.",
+      "blind_spot": "Perfectionism that delays shipping or deciding."
+    },
+    {
+      "id": 15,
+      "name": "Swati",
+      "span": "06°40' Libra - 20°00' Libra",
+      "core_impulse": "Independence, balance, flexibility, and calm negotiation.",
+      "strength": "Ability to stay poised and self-directed across changing environments.",
+      "blind_spot": "Resisting closeness when feeling pressured or boxed in."
+    },
+    {
+      "id": 16,
+      "name": "Vishakha",
+      "span": "20°00' Libra - 03°20' Scorpio",
+      "core_impulse": "Targeted focus, determination, and long-horizon achievement.",
+      "strength": "Sustained push toward a chosen goal once committed.",
+      "blind_spot": "Tunnel vision that overlooks relationship signals."
+    },
+    {
+      "id": 17,
+      "name": "Anuradha",
+      "span": "03°20' Scorpio - 16°40' Scorpio",
+      "core_impulse": "Loyalty, friendship, cooperation, and quiet devotion.",
+      "strength": "Building enduring trust and steady alliances over time.",
+      "blind_spot": "Holding onto hurt quietly instead of naming expectations."
+    },
+    {
+      "id": 18,
+      "name": "Jyeshtha",
+      "span": "16°40' Scorpio - 00°00' Sagittarius",
+      "core_impulse": "Protective authority, emotional intensity, and seniority.",
+      "strength": "Courage under pressure and sharp awareness of power dynamics.",
+      "blind_spot": "Carrying heavy emotional armor or testing trust."
+    },
+    {
+      "id": 19,
+      "name": "Mula",
+      "span": "00°00' Sagittarius - 13°20' Sagittarius",
+      "core_impulse": "Getting to the root, truth-seeking, and fresh starts.",
+      "strength": "Willingness to strip away illusions and rebuild from scratch.",
+      "blind_spot": "Abruptly discarding things before letting them mature."
+    },
+    {
+      "id": 20,
+      "name": "Purva Ashadha",
+      "span": "13°20' Sagittarius - 26°40' Sagittarius",
+      "core_impulse": "Conviction, persuasion, and spirited belief.",
+      "strength": "Confidence to rally momentum and stand behind ideas.",
+      "blind_spot": "Over-promising or arguing a point past usefulness."
+    },
+    {
+      "id": 21,
+      "name": "Uttara Ashadha",
+      "span": "26°40' Sagittarius - 10°00' Capricorn",
+      "core_impulse": "Enduring integrity, steady leadership, and earned respect.",
+      "strength": "Patient consistency that holds up over years.",
+      "blind_spot": "Rigid self-expectation and slowness to rest."
+    },
+    {
+      "id": 22,
+      "name": "Shravana",
+      "span": "10°00' Capricorn - 23°20' Capricorn",
+      "core_impulse": "Deep listening, learning, synthesis, and wise counsel.",
+      "strength": "Absorbing key signals and connecting ideas thoughtfully.",
+      "blind_spot": "Over-absorbing other people's stress or opinions."
+    },
+    {
+      "id": 23,
+      "name": "Dhanishta",
+      "span": "23°20' Capricorn - 06°40' Aquarius",
+      "core_impulse": "Rhythm, timing, teamwork, and resourceful momentum.",
+      "strength": "Sense of timing and ability to coordinate group effort.",
+      "blind_spot": "Moving too fast for slower-paced teammates or partners."
+    },
+    {
+      "id": 24,
+      "name": "Shatabhisha",
+      "span": "06°40' Aquarius - 20°00' Aquarius",
+      "core_impulse": "Autonomy, systems thinking, and inner boundaries.",
+      "strength": "Originality and calm objectivity in complex situations.",
+      "blind_spot": "Emotional detachment or feeling isolated when stressed."
+    },
+    {
+      "id": 25,
+      "name": "Purva Bhadrapada",
+      "span": "20°00' Aquarius - 03°20' Pisces",
+      "core_impulse": "Transformative vision, intensity, and principled commitment.",
+      "strength": "Passion for meaningful change and deep inner conviction.",
+      "blind_spot": "Swinging between intense idealism and mental exhaustion."
+    },
+    {
+      "id": 26,
+      "name": "Uttara Bhadrapada",
+      "span": "03°20' Pisces - 16°40' Pisces",
+      "core_impulse": "Steady depth, patience, wisdom, and calm containment.",
+      "strength": "Grounded emotional maturity and long-range calm.",
+      "blind_spot": "Quietly absorbing stress or delaying action too long."
+    },
+    {
+      "id": 27,
+      "name": "Revati",
+      "span": "16°40' Pisces - 00°00' Aries",
+      "core_impulse": "Completion, compassion, gentle transitions, and closure.",
+      "strength": "Empathy, smooth endings, and guiding people through transitions.",
+      "blind_spot": "Drifting or taking on ambiguity that isn't yours to carry."
+    }
+  ]
+}

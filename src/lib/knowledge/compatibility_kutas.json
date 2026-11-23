@@ -1,0 +1,28 @@
+{
+  "meta": {
+    "file": "compatibility_kutas.json",
+    "sources": [
+      "Muhurtha - B. V. Raman.pdf",
+      "vedic_astro_textbook.pdf"
+    ],
+    "framing": "modern relationship psychology without fear-based dosha warnings"
+  },
+  "core_relationship_lenses": {
+    "attraction_and_chemistry": "Reflects initial spark, shared social energy, and outward relationship style (7th house, Venus, Darapada)[cite: 2].",
+    "inner_bond_and_durability": "Reflects deeper emotional alignment, shared values, and long-term staying power (Navamsha D-9 and Upapada Lagna)[cite: 2]."
+  },
+  "kuta_psychological_translations": {
+    "varna": "Shared life values, maturity orientation, and what each person prioritizes as meaningful.",
+    "vasya": "Mutual influence, responsiveness, and how naturally each partner can reach or sway the other[cite: 10].",
+    "tara": "Day-to-day rhythm ease and how smoothly two people's daily timing flows together.",
+    "yoni": "Physical chemistry, comfort with closeness, and instinctual bodily rapport.",
+    "graha_maitri": "Mental friendship, conversational ease, and shared outlook on life.",
+    "gana": "Core temperament and stress response style—calm/steady vs. brisk/reactive.",
+    "bhakoot": "Emotional tide alignment, shared lifestyle rhythm, and long-term domestic flow.",
+    "nadi": "Nervous-system pacing and constitutional energy balance over sustained closeness."
+  },
+  "dosha_and_friction_guardrails": {
+    "kuja_or_mars_friction": "Indicates high drive, directness, or quick heat—channel through clear boundaries and fair conflict rules rather than fear[cite: 2, 3].",
+    "avoid_superficial_rejection": "Never treat a raw compatibility score or single placement as a fixed verdict; look at full chart context, communication habits, and emotional maturity[cite: 2, 10]."
+  }
+}

@@ -1,0 +1,100 @@
+{
+  "meta": {
+    "file": "dasha_and_timing.json",
+    "sources": [
+      "Laghu Parashari OPVerma.pdf",
+      "Phaladeepika - English Translation.pdf",
+      "Ashtakavarga 1957 Ed. by C S Patel & Aiyar.pdf",
+      "vedic_astro_textbook.pdf"
+    ],
+    "framing": "timing guidance, decision pacing, and cognitive bandwidth"
+  },
+  "transit_moon_house_states": {
+    "1": {
+      "bandwidth_range": [80, 95],
+      "tone": "Open & Expressive",
+      "text_or_wait": "GREEN",
+      "guidance": "Clearer personal presence and emotional directness; good window for honest check-ins."
+    },
+    "2": {
+      "bandwidth_range": [70, 82],
+      "tone": "Neutral & Grounded",
+      "text_or_wait": "GREEN",
+      "guidance": "Practical focus on values, finances, and steady tone; keep messages clear and grounded."
+    },
+    "3": {
+      "bandwidth_range": [72, 85],
+      "tone": "Open & Expressive",
+      "text_or_wait": "GREEN",
+      "guidance": "Strong window for outreach, pitching, and everyday communication."
+    },
+    "4": {
+      "bandwidth_range": [45, 65],
+      "tone": "Reflective & Low-Stakes",
+      "text_or_wait": "YELLOW",
+      "guidance": "Emotional home base feels sensitive; protect quiet recovery and avoid rushing big commitments."
+    },
+    "5": {
+      "bandwidth_range": [80, 94],
+      "tone": "Open & Expressive",
+      "text_or_wait": "GREEN",
+      "guidance": "Supportive for creative expression, warmth, and low-pressure connection."
+    },
+    "6": {
+      "bandwidth_range": [45, 65],
+      "tone": "Reflective & Low-Stakes",
+      "text_or_wait": "YELLOW",
+      "guidance": "Heightened friction or nitpicking risk; handle tasks methodically and pause reactive replies."
+    },
+    "7": {
+      "bandwidth_range": [75, 88],
+      "tone": "Open & Expressive",
+      "text_or_wait": "GREEN",
+      "guidance": "Favorable for partnership dialogue, collaboration, and listening carefully."
+    },
+    "8": {
+      "bandwidth_range": [40, 58],
+      "tone": "Reflective & Low-Stakes",
+      "text_or_wait": "RED",
+      "guidance": "Emotional undercurrents run high; step back from impulsive texts or major contracts for 24–48 hours."
+    },
+    "9": {
+      "bandwidth_range": [80, 94],
+      "tone": "Open & Expressive",
+      "text_or_wait": "GREEN",
+      "guidance": "Broad perspective and constructive momentum; strong day for long-view planning and pitches."
+    },
+    "10": {
+      "bandwidth_range": [78, 92],
+      "tone": "Neutral & Grounded",
+      "text_or_wait": "GREEN",
+      "guidance": "Focused career and visibility energy; great for structured execution and key milestones."
+    },
+    "11": {
+      "bandwidth_range": [72, 86],
+      "tone": "Open & Expressive",
+      "text_or_wait": "GREEN",
+      "guidance": "Supportive for networking, goals, and collaborative wins."
+    },
+    "12": {
+      "bandwidth_range": [42, 62],
+      "tone": "Reflective & Low-Stakes",
+      "text_or_wait": "YELLOW",
+      "guidance": "Lower outward stamina and higher need for rest; keep stakes low and prioritize sleep."
+    }
+  },
+  "ashtakavarga_thresholds": {
+    "strong_transit_bindus_min": 5,
+    "weak_transit_bindus_max": 3,
+    "strong_house_sav_min": 28,
+    "calendar_tags": {
+      "high_score": "Pitch / Negotiate / High-Leverage Execution",
+      "mid_score": "Steady Coordination & Routine Follow-Through",
+      "low_score": "Deep Focus, Admin Cleanup, or 48-Hour Pause"
+    }
+  },
+  "dasha_and_muhurtha_principles": {
+    "functional_dignity": "Evaluate a planet's Dasha impact by the houses it rules for the user's Ascendant—kendra and trikona lords support growth, while dusthana or heavy functional friction calls for steadier pacing[cite: 8].",
+    "electional_timing": "Use timing windows to support intentional action rather than relying on rigid determinism; avoid starting high-stakes commitments during peak emotional or transit strain[cite: 1, 10]."
+  }
+}
