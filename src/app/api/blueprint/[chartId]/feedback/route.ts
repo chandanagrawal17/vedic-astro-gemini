@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
+import { logFunnelEvent } from "@/lib/funnel/events";
 import {
   BlueprintServiceError,
   saveBlueprintFeedback,
@@ -57,6 +58,16 @@ export async function POST(
       userId,
       userEmail,
       sessionToken,
+    });
+
+    await logFunnelEvent({
+      chartId: result.chartId,
+      email: result.email ?? userEmail,
+      eventName: "accuracy_rated",
+      entryHook: result.entryHook,
+      metadata: {
+        feedback: result.accuracyFeedback,
+      },
     });
 
     return NextResponse.json(result, { status: 200 });

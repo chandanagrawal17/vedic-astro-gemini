@@ -10,9 +10,11 @@ import { FullBlueprintPayload, HookProofPayload } from "@/lib/llm/blueprintSchem
 import {
   BirthWindow,
   CareerMode,
+  EntryHook,
   HardResetFeedback,
   PrecisionMode as UiPrecisionMode,
   RelationshipStatus,
+  UnlockSource,
 } from "@/lib/types/blueprint";
 
 export const EXISTING_PAID_ACCOUNT_MESSAGE =
@@ -68,6 +70,11 @@ export interface BlueprintCacheRow {
   model_version: string | null;
   is_paid: boolean;
   unlock_tier: "one_time_19" | "annual_39" | null;
+  unlock_source?: UnlockSource | null;
+  unlocked_at?: string | null;
+  unlocked_email_sent_at?: string | null;
+  entry_hook?: EntryHook | null;
+  utm_source?: string | null;
   created_at: string;
   updated_at?: string;
 }
@@ -221,6 +228,8 @@ export async function evaluateEmailCacheState(params: {
   contextHash: string;
   authUserId?: string | null;
   authUserEmail?: string | null;
+  sessionToken?: string | null;
+  intent?: string | null;
 }): Promise<EmailCacheEvaluation> {
   const normalizedEmail = normalizeEmail(params.email);
   const { chart, blueprint } = await lookupEmailCacheRecord(
@@ -228,9 +237,19 @@ export async function evaluateEmailCacheState(params: {
     normalizedEmail
   );
 
+  const isVerifiedBetaRefresh = Boolean(
+    params.intent === "birth_time_upgrade" &&
+      params.sessionToken &&
+      chart &&
+      params.sessionToken === chart.session_token &&
+      (blueprint?.unlock_source === "beta_free" ||
+        blueprint?.unlock_source === "beta_code")
+  );
+
   // Paid Account Privacy Guardrail
   if (
     blueprint?.is_paid === true &&
+    !isVerifiedBetaRefresh &&
     !isAuthorizedForExistingRecord({
       chartUserId: chart?.user_id,
       blueprintUserId: blueprint.user_id,

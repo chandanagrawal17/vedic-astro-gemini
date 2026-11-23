@@ -1,7 +1,7 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+import React, { Suspense, useEffect, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { ArrowLeft, ArrowRight, Check, MapPin } from "lucide-react";
 import { z } from "zod";
 import { SolarShell } from "@/components/ui/SolarShell";
@@ -14,6 +14,12 @@ import {
   RelationshipStatus,
 } from "@/lib/types/blueprint";
 import { MOCK_CITIES } from "@/lib/mock/blueprintMock";
+import {
+  loadAttribution,
+  parseEntryHook,
+  saveAttribution,
+  trackFunnelEvent,
+} from "@/lib/store/attributionStore";
 import { createAndSaveSession } from "@/lib/store/sessionStore";
 
 const WINDOW_OPTIONS: { value: BirthWindow; label: string; range: string }[] = [
@@ -50,8 +56,9 @@ const RELATIONSHIP_OPTIONS: {
   },
 ];
 
-export default function OnboardingPage() {
+function OnboardingPageContent() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [step, setStep] = useState<1 | 2>(1);
 
   // Step 1 state
@@ -75,6 +82,20 @@ export default function OnboardingPage() {
     MOCK_CITIES.slice(0, 12)
   );
   const [isSearchingCity, setIsSearchingCity] = useState(false);
+
+  useEffect(() => {
+    const hookParam = searchParams.get("hook");
+    const utmParam = searchParams.get("utm_source");
+    const saved = saveAttribution({
+      entryHook: hookParam ? parseEntryHook(hookParam) : undefined,
+      utmSource: utmParam || undefined,
+    });
+    trackFunnelEvent({
+      eventName: "onboarding_started",
+      entryHook: saved.entryHook,
+      dedupeKey: `onboarding_started_${saved.entryHook}`,
+    });
+  }, [searchParams]);
 
   useEffect(() => {
     const q = cityQuery.trim();
@@ -161,6 +182,7 @@ export default function OnboardingPage() {
     };
 
     const firstNameOnly = fullName.trim().split(/\s+/)[0] || fullName.trim();
+    const attribution = loadAttribution();
 
     const payload: OnboardingInput = {
       email: email.trim(),
@@ -176,6 +198,8 @@ export default function OnboardingPage() {
       relationshipStatus: chosenStatus,
       careerMode: "employed",
       careerField: "",
+      entryHook: attribution.entryHook,
+      utmSource: attribution.utmSource,
     };
 
     createAndSaveSession(payload);
@@ -187,7 +211,7 @@ export default function OnboardingPage() {
   const progressPct = step === 1 ? "50%" : "100%";
 
   return (
-    <SolarShell showDisclaimer={false}>
+    <SolarShell showDisclaimer={true}>
       <div className="flex flex-1 flex-col px-5 pt-6 pb-10">
         {/* Top Progress Header */}
         <div className="flex items-center justify-between gap-4">
@@ -473,5 +497,21 @@ export default function OnboardingPage() {
         )}
       </div>
     </SolarShell>
+  );
+}
+
+export default function OnboardingPage() {
+  return (
+    <Suspense
+      fallback={
+        <SolarShell showDisclaimer={true}>
+          <div className="flex flex-1 items-center justify-center px-5 py-12 text-sm text-[#B8A99E]">
+            Loading onboarding...
+          </div>
+        </SolarShell>
+      }
+    >
+      <OnboardingPageContent />
+    </Suspense>
   );
 }

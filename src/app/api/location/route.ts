@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { NormalizedLocation } from "@/lib/astro/types";
 import { getAstroProvider } from "@/lib/astro/vedicAstroProvider";
 import { MOCK_CITIES } from "@/lib/mock/blueprintMock";
+import { enforceRateLimit } from "@/lib/rateLimit";
 import { LocationOption } from "@/lib/types/blueprint";
 
 interface CacheEntry {
@@ -38,6 +39,13 @@ function fromMockCity(opt: LocationOption): NormalizedLocation {
 }
 
 export async function GET(req: NextRequest) {
+  const rateLimited = enforceRateLimit(req, {
+    namespace: "location_search",
+    limit: 30,
+    windowMs: 60 * 1000,
+  });
+  if (rateLimited) return rateLimited;
+
   const q = req.nextUrl.searchParams.get("q")?.trim() ?? "";
 
   if (q.length < 2) {

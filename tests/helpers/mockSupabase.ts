@@ -8,8 +8,9 @@ type FilterFn = (row: Row) => boolean;
 class InMemoryQueryBuilder {
   private filters: FilterFn[] = [];
   private limitCount: number | null = null;
-  private mode: "select" | "upsert" | "update" | "delete" = "select";
+  private mode: "select" | "insert" | "upsert" | "update" | "delete" = "select";
   private payload: Row | null = null;
+  private insertPayloads: Row[] = [];
   private onConflictCol: string | null = null;
   private returnSingle: "single" | "maybeSingle" | null = null;
 
@@ -29,6 +30,13 @@ class InMemoryQueryBuilder {
     this.mode = "upsert";
     this.payload = { ...row };
     this.onConflictCol = opts?.onConflict ?? "id";
+    return this;
+  }
+
+  insert(rowOrRows: Row | Row[]) {
+    this.mode = "insert";
+    const list = Array.isArray(rowOrRows) ? rowOrRows : [rowOrRows];
+    this.insertPayloads = list.map((r) => ({ ...r }));
     return this;
   }
 
@@ -101,6 +109,23 @@ class InMemoryQueryBuilder {
     data: T;
     error: { code?: string; message?: string } | null;
   }> {
+    if (this.mode === "insert") {
+      const now = new Date().toISOString();
+      const inserted = this.insertPayloads.map((item) => {
+        const saved: Row = {
+          id: randomUUID(),
+          created_at: now,
+          ...item,
+        };
+        this.rows.push(saved);
+        return structuredClone(saved);
+      });
+      if (this.returnSingle) {
+        return { data: (inserted[0] ?? null) as T, error: null };
+      }
+      return { data: inserted as unknown as T, error: null };
+    }
+
     if (this.mode === "upsert" && this.payload) {
       const conflictKey = this.onConflictCol || "id";
       const existingIdx = this.rows.findIndex(
@@ -199,6 +224,7 @@ export class InMemorySupabaseAdmin {
     natal_charts: [],
     blueprints: [],
     profiles: [],
+    funnel_events: [],
   };
 
   from(table: string) {

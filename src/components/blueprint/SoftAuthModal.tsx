@@ -15,6 +15,7 @@ interface SoftAuthModalProps {
   titleOverride?: string;
   descriptionOverride?: string;
   nextPathOverride?: string;
+  allowDirectBetaContinue?: boolean;
   onClose: () => void;
   onContinue: (email?: string) => void;
 }
@@ -29,6 +30,7 @@ export function SoftAuthModal({
   titleOverride,
   descriptionOverride,
   nextPathOverride,
+  allowDirectBetaContinue = false,
   onClose,
   onContinue,
 }: SoftAuthModalProps) {
@@ -295,6 +297,17 @@ export function SoftAuthModal({
         <p className="mt-4 text-center text-[11px] text-[#7C6E65]">
           Private profile · No spam, one-click delete anytime
         </p>
+
+        {allowDirectBetaContinue && (
+          <button
+            type="button"
+            disabled={loading}
+            onClick={() => onContinue(email.trim() || prefilledEmail || undefined)}
+            className="mt-3 w-full rounded-full border border-[#F5A65B]/25 bg-[#1C130E]/70 py-2.5 px-4 text-[12px] font-medium text-[#F5A65B] hover:border-[#FF6B2B]/60 hover:text-[#FDF6EE] transition"
+          >
+            Continue straight to Unlock (Early Beta — no inbox wait) &rarr;
+          </button>
+        )}
       </div>
     </div>
   );

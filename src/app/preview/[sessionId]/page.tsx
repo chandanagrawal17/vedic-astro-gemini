@@ -8,21 +8,26 @@ import {
   Flame,
   Lock,
   RotateCcw,
+  Share2,
   Sparkles,
 } from "lucide-react";
 import { SolarShell } from "@/components/ui/SolarShell";
 import { ObsidianCard } from "@/components/ui/ObsidianCard";
 import { AccuracyCheck } from "@/components/blueprint/AccuracyCheck";
+import { BragCardModal } from "@/components/blueprint/BragCardModal";
 import { LifeChaptersArc } from "@/components/blueprint/LifeChaptersArc";
 import { AlignmentMeter } from "@/components/blueprint/AlignmentMeter";
 import { LockedInsightCard } from "@/components/blueprint/LockedInsightCard";
 import { SoftAuthModal } from "@/components/blueprint/SoftAuthModal";
+import { trackFunnelEvent } from "@/lib/store/attributionStore";
 import {
   BlueprintFreePayload,
   BlueprintPaidPayload,
   BlueprintSession,
+  EntryHook,
   HardResetFeedback,
   OnboardingInput,
+  UnlockSource,
 } from "@/lib/types/blueprint";
 import {
   loadSession,
@@ -40,6 +45,10 @@ interface BlueprintApiResponse {
   modelVersion?: string | null;
   isUnlocked?: boolean;
   unlockTier?: "one_time_19" | "annual_39" | null;
+  unlockSource?: UnlockSource | null;
+  unlockedAt?: string | null;
+  entryHook?: EntryHook | null;
+  utmSource?: string | null;
   accuracyFeedback?: HardResetFeedback | null;
   hook_proof_json: BlueprintFreePayload;
   full_blueprint_json: BlueprintPaidPayload | null;
@@ -89,6 +98,7 @@ export default function PreviewSessionPage() {
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [retrying, setRetrying] = useState(false);
   const [authModalOpen, setAuthModalOpen] = useState(false);
+  const [bragModalOpen, setBragModalOpen] = useState(false);
 
   const stepParam = searchParams.get("step");
   const activeStep: 1 | 2 = stepParam === "2" ? 2 : 1;
@@ -136,6 +146,10 @@ export default function PreviewSessionPage() {
               paidPayload: synthData.full_blueprint_json,
               isUnlocked: synthData.isUnlocked,
               unlockTier: synthData.unlockTier,
+              unlockSource: synthData.unlockSource,
+              unlockedAt: synthData.unlockedAt,
+              entryHook: synthData.entryHook,
+              utmSource: synthData.utmSource,
               moonBoundaryFlag: synthData.moonBoundaryFlag,
               hardResetFeedback: synthData.accuracyFeedback,
               modelVersion: synthData.modelVersion,
@@ -164,6 +178,10 @@ export default function PreviewSessionPage() {
               paidPayload: data.full_blueprint_json,
               isUnlocked: data.isUnlocked,
               unlockTier: data.unlockTier,
+              unlockSource: data.unlockSource,
+              unlockedAt: data.unlockedAt,
+              entryHook: data.entryHook,
+              utmSource: data.utmSource,
               moonBoundaryFlag: data.moonBoundaryFlag,
               hardResetFeedback: data.accuracyFeedback,
               modelVersion: data.modelVersion,
@@ -211,6 +229,19 @@ export default function PreviewSessionPage() {
 
     void hydrateFromApi(sid, false);
   }, [params?.sessionId, hydrateFromApi]);
+
+  useEffect(() => {
+    if (!session) return;
+    trackFunnelEvent({
+      eventName: "proof_viewed",
+      chartId: session.chartId,
+      sessionToken: session.sessionToken ?? session.sessionId,
+      email: session.input.email,
+      entryHook: session.entryHook ?? session.input.entryHook ?? null,
+      metadata: { step: activeStep },
+      dedupeKey: `proof_viewed_${session.chartId ?? session.sessionId}`,
+    });
+  }, [session, activeStep]);
 
   if (loading) {
     return <PreviewLoadingSkeleton />;
@@ -355,6 +386,15 @@ export default function PreviewSessionPage() {
                 isUnlocked={false}
                 onEra3LockedClick={() => setAuthModalOpen(true)}
               />
+
+              <button
+                type="button"
+                onClick={() => setBragModalOpen(true)}
+                className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-full border border-[#F5A65B]/25 bg-[#120C09]/85 py-2.5 px-4 text-[13px] font-medium text-[#FDF6EE] hover:border-[#FF6B2B]/60 transition"
+              >
+                <Share2 className="h-3.5 w-3.5 text-[#F5A65B]" />
+                <span>Share My 3 Eras</span>
+              </button>
             </ObsidianCard>
           </div>
         )}
@@ -463,8 +503,22 @@ export default function PreviewSessionPage() {
         sessionId={session.sessionId}
         sessionToken={session.sessionToken ?? session.sessionId}
         onboardingInput={input}
+        allowDirectBetaContinue={true}
         onClose={() => setAuthModalOpen(false)}
         onContinue={handleAuthContinue}
+      />
+
+      <BragCardModal
+        isOpen={bragModalOpen}
+        initialMode="3_eras"
+        allowModeSwitch={false}
+        firstName={input.firstName}
+        freePayload={freePayload}
+        chartId={session.chartId}
+        sessionToken={session.sessionToken ?? session.sessionId}
+        email={input.email}
+        entryHook={session.entryHook ?? input.entryHook ?? null}
+        onClose={() => setBragModalOpen(false)}
       />
     </SolarShell>
   );

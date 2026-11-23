@@ -26,6 +26,28 @@ export type HookKey =
   | "self_sabotage"
   | "eras";
 
+export type EntryHook =
+  | "hard-reset"
+  | "3-eras"
+  | "career-audit"
+  | "love-mirror"
+  | "self-sabotage"
+  | "direct";
+
+export type UnlockSource = "beta_free" | "beta_code" | "stripe";
+
+export type FunnelEventName =
+  | "landing_view"
+  | "onboarding_started"
+  | "chart_calculated"
+  | "proof_viewed"
+  | "accuracy_rated"
+  | "paywall_viewed"
+  | "paywall_cta_clicked"
+  | "beta_unlocked"
+  | "brag_card_shared"
+  | "birth_time_upgraded";
+
 export interface LocationOption {
   cityName: string;
   region: string;
@@ -48,6 +70,8 @@ export interface OnboardingInput {
   relationshipStatus: RelationshipStatus;
   careerMode: CareerMode;
   careerField: string;
+  entryHook?: EntryHook;
+  utmSource?: string;
 }
 
 export interface EraSummary {
@@ -148,6 +172,10 @@ export interface BlueprintSession {
   hardResetFeedback: HardResetFeedback | null;
   isUnlocked: boolean;
   unlockTier: "one_time_19" | "annual_39" | null;
+  unlockSource?: UnlockSource | null;
+  unlockedAt?: string | null;
+  entryHook?: EntryHook | null;
+  utmSource?: string | null;
   reflections: ReflectionNote[];
   createdAt: string;
 }

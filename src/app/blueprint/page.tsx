@@ -10,6 +10,7 @@ import {
   Lock,
   Plus,
   RotateCcw,
+  Share2,
   ShieldAlert,
   Sparkles,
   X,
@@ -17,15 +18,18 @@ import {
 import { SolarShell } from "@/components/ui/SolarShell";
 import { ObsidianCard } from "@/components/ui/ObsidianCard";
 import { SolarOrbHero } from "@/components/ui/SolarOrbHero";
+import { BragCardModal } from "@/components/blueprint/BragCardModal";
 import { LifeChaptersArc } from "@/components/blueprint/LifeChaptersArc";
 import { AlignmentMeter } from "@/components/blueprint/AlignmentMeter";
 import {
   BlueprintFreePayload,
   BlueprintPaidPayload,
   BlueprintSession,
+  EntryHook,
   HardResetFeedback,
   HookKey,
   OnboardingInput,
+  UnlockSource,
 } from "@/lib/types/blueprint";
 import {
   addReflection,
@@ -53,6 +57,10 @@ interface BlueprintApiResponse {
   modelVersion?: string | null;
   isUnlocked: boolean;
   unlockTier?: "one_time_19" | "annual_39" | null;
+  unlockSource?: UnlockSource | null;
+  unlockedAt?: string | null;
+  entryHook?: EntryHook | null;
+  utmSource?: string | null;
   accuracyFeedback?: HardResetFeedback | null;
   hook_proof_json: BlueprintFreePayload;
   full_blueprint_json: BlueprintPaidPayload | null;
@@ -97,9 +105,11 @@ function BlueprintHubContent() {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [noteInput, setNoteInput] = useState("");
   const [showTimeModal, setShowTimeModal] = useState(false);
+  const [bragModalOpen, setBragModalOpen] = useState(false);
   const [newTime, setNewTime] = useState("08:30");
   const [refreshingTime, setRefreshingTime] = useState(false);
   const [refreshError, setRefreshError] = useState<string | null>(null);
+  const [refreshSuccess, setRefreshSuccess] = useState(false);
 
   const loadBlueprint = useCallback(async (targetId: string) => {
     setErrorMsg(null);
@@ -107,11 +117,14 @@ function BlueprintHubContent() {
     const stored = loadStoredSession(targetId);
 
     try {
-      const tokenParam = stored?.sessionToken
-        ? `?sessionToken=${encodeURIComponent(stored.sessionToken)}`
-        : "";
+      const resolvedToken =
+        stored?.sessionToken ||
+        (targetId.startsWith("pb_") ? targetId : null);
       const res = await fetch(
-        `/api/blueprint/${encodeURIComponent(targetId)}${tokenParam}`
+        `/api/blueprint/${encodeURIComponent(targetId)}`,
+        resolvedToken
+          ? { headers: { "x-session-token": resolvedToken } }
+          : undefined
       );
       const data = (await res.json()) as BlueprintApiResponse;
       if (!res.ok) {
@@ -128,6 +141,10 @@ function BlueprintHubContent() {
           paidPayload: data.full_blueprint_json,
           isUnlocked: data.isUnlocked,
           unlockTier: data.unlockTier,
+          unlockSource: data.unlockSource,
+          unlockedAt: data.unlockedAt,
+          entryHook: data.entryHook,
+          utmSource: data.utmSource,
           moonBoundaryFlag: data.moonBoundaryFlag,
           hardResetFeedback: data.accuracyFeedback,
           modelVersion: data.modelVersion,
@@ -259,15 +276,19 @@ function BlueprintHubContent() {
         body: JSON.stringify({
           ...updatedInput,
           sessionToken: session.sessionToken ?? session.sessionId,
+          intent: "birth_time_upgrade",
         }),
       });
       const calcData = (await calcRes.json()) as {
         chartId?: string;
         sessionToken?: string;
         error?: string;
+        message?: string;
       };
       if (!calcRes.ok || !calcData.chartId) {
-        throw new Error(calcData.error || "Failed to recalculate chart.");
+        throw new Error(
+          calcData.error || calcData.message || "Failed to recalculate chart."
+        );
       }
 
       const synthRes = await fetch("/api/blueprint/synthesize", {
@@ -276,17 +297,22 @@ function BlueprintHubContent() {
         body: JSON.stringify({
           chartId: calcData.chartId,
           sessionToken: calcData.sessionToken,
-          email: updatedInput.email,
+          email: updatedInput.email || undefined,
           firstName: updatedInput.firstName,
           relationshipStatus: updatedInput.relationshipStatus,
           careerMode: updatedInput.careerMode,
           careerField: updatedInput.careerField,
+          intent: "birth_time_upgrade",
         }),
       });
-      const synthData = (await synthRes.json()) as BlueprintApiResponse;
+      const synthData = (await synthRes.json()) as BlueprintApiResponse & {
+        message?: string;
+      };
       if (!synthRes.ok) {
         throw new Error(
-          synthData.error || "Failed to refresh Blueprint synthesis."
+          synthData.error ||
+            synthData.message ||
+            "Failed to refresh Blueprint synthesis."
         );
       }
 
@@ -298,12 +324,18 @@ function BlueprintHubContent() {
         paidPayload: synthData.full_blueprint_json,
         isUnlocked: synthData.isUnlocked,
         unlockTier: synthData.unlockTier,
+        unlockSource: synthData.unlockSource,
+        unlockedAt: synthData.unlockedAt,
+        entryHook: synthData.entryHook,
+        utmSource: synthData.utmSource,
         moonBoundaryFlag: synthData.moonBoundaryFlag,
         hardResetFeedback: synthData.accuracyFeedback,
         modelVersion: synthData.modelVersion,
       });
       setSession(refreshed);
       setShowTimeModal(false);
+      setRefreshSuccess(true);
+      router.refresh();
     } catch (err) {
       setRefreshError(
         err instanceof Error ? err.message : "Unable to refresh right now."
@@ -325,7 +357,21 @@ function BlueprintHubContent() {
           <p className="mt-1 text-[13px] text-[#B8A99E]">
             Know your patterns. Own your life.
           </p>
+          <button
+            type="button"
+            onClick={() => setBragModalOpen(true)}
+            className="mt-3 inline-flex items-center gap-1.5 rounded-full border border-[#F5A65B]/25 bg-[#1C130E]/85 px-4 py-1.5 text-[12px] font-medium text-[#FDF6EE] hover:border-[#FF6B2B]/60 transition"
+          >
+            <Share2 className="h-3.5 w-3.5 text-[#F5A65B]" />
+            <span>Share My Pattern</span>
+          </button>
         </div>
+
+        {refreshSuccess && (
+          <div className="mt-4 rounded-2xl border border-[#4ADE80]/30 bg-[#4ADE80]/10 px-4 py-2.5 text-center text-[12px] text-[#4ADE80]">
+            Exact birth time applied—your Blueprint has been refreshed for free.
+          </div>
+        )}
 
         {/* Free Birth-Time Upgrade Banner if precisionMode !== "exact" */}
         {input.precisionMode !== "exact" && (
@@ -333,8 +379,8 @@ function BlueprintHubContent() {
             <div className="flex items-start gap-2.5">
               <Clock className="mt-0.5 h-4 w-4 shrink-0 text-[#F5A65B]" />
               <p className="text-[12px] leading-snug text-[#FDF6EE]">
-                {freePayload.upgrade_hint ||
-                  "Found your exact birth time? Add it anytime for a free Deep Blueprint refresh."}
+                Want sharper career &amp; relationship precision? Add your exact
+                birth time anytime for a free refresh.
               </p>
             </div>
             <button
@@ -739,6 +785,20 @@ function BlueprintHubContent() {
           )}
         </div>
       </div>
+
+      {/* Shareable 9:16 Brag Card Modal */}
+      <BragCardModal
+        isOpen={bragModalOpen}
+        initialMode="self_sabotage"
+        allowModeSwitch={true}
+        firstName={input.firstName}
+        freePayload={freePayload}
+        chartId={session.chartId}
+        sessionToken={session.sessionToken ?? session.sessionId}
+        email={input.email}
+        entryHook={session.entryHook ?? input.entryHook ?? null}
+        onClose={() => setBragModalOpen(false)}
+      />
 
       {/* Modal to Add Exact Birth Time for Free Refresh */}
       {showTimeModal && (

@@ -1,5 +1,6 @@
 import { GoogleGenAI } from "@google/genai";
 import { z } from "zod";
+import { readCleanEnv } from "@/lib/env";
 import {
   GenerateStructuredJsonOptions,
   LlmProvider,
@@ -17,22 +18,37 @@ export class LlmProviderError extends Error {
   }
 }
 
+function isRateLimitError(err: unknown, message: string): boolean {
+  const errObj = err as { status?: number; statusCode?: number; code?: number } | null;
+  if (errObj?.status === 429 || errObj?.statusCode === 429 || errObj?.code === 429) {
+    return true;
+  }
+  return (
+    message.includes("429") ||
+    message.includes("RESOURCE_EXHAUSTED") ||
+    message.toLowerCase().includes("rate limit") ||
+    message.toLowerCase().includes("quota")
+  );
+}
+
 export class GeminiLlmProvider implements LlmProvider {
   public readonly providerName = "gemini";
   public modelName: string;
   private readonly primaryModel: string;
   private readonly fallbackModel: string | null;
   private readonly apiKey: string;
+  private readonly rateLimitBackoffMs: number;
 
   constructor(options?: {
     apiKey?: string;
     modelName?: string;
     fallbackModel?: string | null;
+    rateLimitBackoffMs?: number;
   }) {
     if (typeof window !== "undefined") {
       throw new Error("GeminiLlmProvider must only run on the server.");
     }
-    const key = options?.apiKey || process.env.GEMINI_API_KEY;
+    const key = options?.apiKey || readCleanEnv("GEMINI_API_KEY");
     if (!key) {
       throw new LlmProviderError(
         "Missing GEMINI_API_KEY environment variable.",
@@ -41,15 +57,16 @@ export class GeminiLlmProvider implements LlmProvider {
     }
     this.apiKey = key;
     this.primaryModel =
-      options?.modelName || process.env.GEMINI_MODEL || "gemini-3.8-flash";
+      options?.modelName || readCleanEnv("GEMINI_MODEL") || "gemini-3.8-flash";
     this.modelName = this.primaryModel;
 
     const envFallback =
       options?.fallbackModel !== undefined
         ? options.fallbackModel
-        : process.env.GEMINI_FALLBACK_MODEL || "gemini-3.1-flash-lite";
+        : readCleanEnv("GEMINI_FALLBACK_MODEL") || "gemini-3.1-flash-lite";
     this.fallbackModel =
       envFallback && envFallback !== this.primaryModel ? envFallback : null;
+    this.rateLimitBackoffMs = options?.rateLimitBackoffMs ?? 3000;
   }
 
   private async invokeModel<T>(
@@ -125,11 +142,17 @@ export class GeminiLlmProvider implements LlmProvider {
         );
       }
       const msg = err instanceof Error ? err.message : String(err);
+
+      if (isRateLimitError(err, msg)) {
+        throw new LlmProviderError(
+          "Our synthesis engine hit a brief rate limit. Please tap Retry in a few seconds.",
+          429,
+          false
+        );
+      }
+
       const isTransient =
-        msg.includes("503") ||
-        msg.includes("UNAVAILABLE") ||
-        msg.includes("429") ||
-        msg.includes("RESOURCE_EXHAUSTED");
+        msg.includes("503") || msg.includes("UNAVAILABLE");
 
       throw new LlmProviderError(
         `Gemini API error: ${msg}`,
@@ -156,15 +179,10 @@ export class GeminiLlmProvider implements LlmProvider {
         ? userPayload
         : JSON.stringify(userPayload, null, 2);
 
-    const modelsToTry = this.fallbackModel
-      ? [this.primaryModel, this.fallbackModel]
-      : [this.primaryModel, this.primaryModel];
-
-    let lastErr: unknown;
-    for (let i = 0; i < modelsToTry.length; i++) {
-      const model = modelsToTry[i];
-      const attemptTimeout =
-        i === 0 && this.fallbackModel ? Math.min(timeoutMs, 15000) : timeoutMs;
+    const invokeWith429Retry = async (
+      model: string,
+      attemptTimeout: number
+    ): Promise<T> => {
       try {
         return await this.invokeModel(
           ai,
@@ -177,11 +195,55 @@ export class GeminiLlmProvider implements LlmProvider {
           attemptTimeout
         );
       } catch (err) {
+        if (err instanceof LlmProviderError && err.statusCode === 429) {
+          console.warn(
+            `[GeminiLlmProvider] HTTP 429 on ${model}; backing off ${this.rateLimitBackoffMs}ms and retrying 1x.`
+          );
+          await new Promise((r) => setTimeout(r, this.rateLimitBackoffMs));
+          return await this.invokeModel(
+            ai,
+            model,
+            systemPrompt,
+            userContent,
+            jsonSchema,
+            schema,
+            options,
+            attemptTimeout
+          );
+        }
+        throw err;
+      }
+    };
+
+    const modelsToTry = this.fallbackModel
+      ? [this.primaryModel, this.fallbackModel]
+      : [this.primaryModel, this.primaryModel];
+
+    let lastErr: unknown;
+    for (let i = 0; i < modelsToTry.length; i++) {
+      const model = modelsToTry[i];
+      const attemptTimeout =
+        i === 0 && this.fallbackModel ? Math.min(timeoutMs, 15000) : timeoutMs;
+      try {
+        if (model === this.primaryModel && i === 0) {
+          return await invokeWith429Retry(model, attemptTimeout);
+        }
+        return await this.invokeModel(
+          ai,
+          model,
+          systemPrompt,
+          userContent,
+          jsonSchema,
+          schema,
+          options,
+          attemptTimeout
+        );
+      } catch (err) {
         lastErr = err;
-        const canRetry =
+        const canFallback =
           err instanceof LlmProviderError &&
-          (err.statusCode === 503 || err.statusCode === 429 || err.isTimeout);
-        if (!canRetry || i === modelsToTry.length - 1) {
+          (err.statusCode === 503 || err.isTimeout);
+        if (!canFallback || i === modelsToTry.length - 1) {
           throw err;
         }
         if (model === modelsToTry[i + 1]) {

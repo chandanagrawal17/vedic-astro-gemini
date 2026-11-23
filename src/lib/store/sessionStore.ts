@@ -4,9 +4,11 @@ import {
   BlueprintFreePayload,
   BlueprintPaidPayload,
   BlueprintSession,
+  EntryHook,
   HardResetFeedback,
   HookKey,
   OnboardingInput,
+  UnlockSource,
 } from "@/lib/types/blueprint";
 import {
   buildMockBlueprint,
@@ -45,6 +47,10 @@ export function saveSynthesizedSession(
     paidPayload?: BlueprintPaidPayload | null;
     isUnlocked?: boolean;
     unlockTier?: "one_time_19" | "annual_39" | null;
+    unlockSource?: UnlockSource | null;
+    unlockedAt?: string | null;
+    entryHook?: EntryHook | null;
+    utmSource?: string | null;
     moonBoundaryFlag?: boolean;
     hardResetFeedback?: HardResetFeedback | null;
     modelVersion?: string | null;
@@ -75,6 +81,22 @@ export function saveSynthesizedSession(
       payload.unlockTier !== undefined
         ? payload.unlockTier
         : existing?.unlockTier ?? null,
+    unlockSource:
+      payload.unlockSource !== undefined
+        ? payload.unlockSource
+        : existing?.unlockSource ?? null,
+    unlockedAt:
+      payload.unlockedAt !== undefined
+        ? payload.unlockedAt
+        : existing?.unlockedAt ?? null,
+    entryHook:
+      payload.entryHook !== undefined
+        ? payload.entryHook
+        : existing?.entryHook ?? input.entryHook ?? null,
+    utmSource:
+      payload.utmSource !== undefined
+        ? payload.utmSource
+        : existing?.utmSource ?? input.utmSource ?? null,
     reflections: existing?.reflections ?? [],
     createdAt: existing?.createdAt ?? new Date().toISOString(),
   };

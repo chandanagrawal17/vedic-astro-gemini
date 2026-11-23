@@ -1,4 +1,5 @@
 import React from "react";
+import Link from "next/link";
 
 interface SolarShellProps {
   children: React.ReactNode;
@@ -41,11 +42,27 @@ export function SolarShell({
         <main className="flex-1 flex flex-col">{children}</main>
 
         {showDisclaimer && (
-          <footer className="px-5 pb-6 pt-4 text-center">
+          <footer className="px-5 pb-6 pt-4 text-center space-y-2">
             <p className="text-[11px] leading-relaxed text-[#7C6E65]">
-              For self-reflection and personal insight only—not clinical therapy,
-              medical, or financial advice.
+              Powered transparently by Vedic pattern calculations and numerology
+              for self-reflection and personal insight—not clinical therapy,
+              medical, legal, or financial advice.
             </p>
+            <div className="flex items-center justify-center gap-3 text-[11px] text-[#8E7F75]">
+              <Link
+                href="/privacy"
+                className="hover:text-[#FDF6EE] transition underline underline-offset-2 decoration-[#F5A65B]/25"
+              >
+                Privacy
+              </Link>
+              <span aria-hidden="true">·</span>
+              <Link
+                href="/terms"
+                className="hover:text-[#FDF6EE] transition underline underline-offset-2 decoration-[#F5A65B]/25"
+              >
+                Terms
+              </Link>
+            </div>
           </footer>
         )}
       </div>

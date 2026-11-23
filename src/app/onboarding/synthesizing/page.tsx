@@ -11,11 +11,14 @@ import {
   loadSession,
   saveSynthesizedSession,
 } from "@/lib/store/sessionStore";
+import { loadAttribution } from "@/lib/store/attributionStore";
 import {
   BlueprintFreePayload,
   BlueprintPaidPayload,
+  EntryHook,
   HardResetFeedback,
   OnboardingInput,
+  UnlockSource,
 } from "@/lib/types/blueprint";
 
 const STATUS_LINES = [
@@ -44,6 +47,10 @@ interface SynthesizeApiResponse {
   modelVersion: string | null;
   isUnlocked: boolean;
   unlockTier: "one_time_19" | "annual_39" | null;
+  unlockSource?: UnlockSource | null;
+  unlockedAt?: string | null;
+  entryHook?: EntryHook | null;
+  utmSource?: string | null;
   accuracyFeedback: HardResetFeedback | null;
   hook_proof_json: BlueprintFreePayload;
   full_blueprint_json: BlueprintPaidPayload | null;
@@ -74,9 +81,13 @@ export default function SynthesizingPage() {
     setLineIndex(0);
 
     const session = loadSession();
+    const attribution = loadAttribution();
+    const effectiveEntryHook = session.input.entryHook ?? attribution.entryHook;
+    const effectiveUtmSource = session.input.utmSource ?? attribution.utmSource;
+
     setActiveInput(session.input);
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 45000);
+    const timeoutId = setTimeout(() => controller.abort(), 60000);
 
     const minAnimationPromise = new Promise<void>((resolve) => {
       setTimeout(resolve, 2800);
@@ -90,6 +101,8 @@ export default function SynthesizingPage() {
         signal: controller.signal,
         body: JSON.stringify({
           ...session.input,
+          entryHook: effectiveEntryHook,
+          utmSource: effectiveUtmSource,
           sessionToken: session.sessionToken,
         }),
       });
@@ -105,9 +118,11 @@ export default function SynthesizingPage() {
       if (!calcRes.ok) {
         throw new Error(
           calcData.error ||
-            (calcRes.status === 504
-              ? "Pattern engine timed out. Please retry."
-              : "Unable to calculate your chart right now.")
+            (calcRes.status === 429
+              ? "Our pattern engine is briefly catching its breath. Please tap Retry in a few seconds."
+              : calcRes.status === 504
+                ? "Pattern engine timed out. Please retry."
+                : "Unable to calculate your chart right now.")
         );
       }
 
@@ -135,6 +150,8 @@ export default function SynthesizingPage() {
             relationshipStatus: session.input.relationshipStatus,
             careerMode: session.input.careerMode,
             careerField: session.input.careerField,
+            entryHook: effectiveEntryHook,
+            utmSource: effectiveUtmSource,
           }),
         });
 
@@ -149,9 +166,11 @@ export default function SynthesizingPage() {
         if (!synthRes.ok) {
           throw new Error(
             synthData.error ||
-              (synthRes.status === 504
-                ? "Blueprint synthesis timed out. Please try again."
-                : "Unable to synthesize your Blueprint right now.")
+              (synthRes.status === 429
+                ? "Our synthesis engine hit a brief free-tier pause. Please tap Retry in a few seconds."
+                : synthRes.status === 504
+                  ? "Blueprint synthesis timed out. Please try again."
+                  : "Unable to synthesize your Blueprint right now.")
           );
         }
 
@@ -177,6 +196,10 @@ export default function SynthesizingPage() {
         paidPayload: synthResult.full_blueprint_json,
         isUnlocked: synthResult.isUnlocked,
         unlockTier: synthResult.unlockTier,
+        unlockSource: synthResult.unlockSource,
+        unlockedAt: synthResult.unlockedAt,
+        entryHook: synthResult.entryHook ?? effectiveEntryHook,
+        utmSource: synthResult.utmSource ?? effectiveUtmSource ?? null,
         moonBoundaryFlag: synthResult.moonBoundaryFlag,
         hardResetFeedback: synthResult.accuracyFeedback,
         modelVersion: synthResult.modelVersion,

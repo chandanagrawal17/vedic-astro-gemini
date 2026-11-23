@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { AstroProviderError } from "@/lib/astro/vedicAstroProvider";
 import { ExistingPaidAccountError } from "@/lib/cache/blueprintCache";
+import { EntryHookSchema, logFunnelEvent } from "@/lib/funnel/events";
+import { enforceRateLimit } from "@/lib/rateLimit";
 import { calculateAndPersistChart } from "@/lib/supabase/chartSession";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
@@ -41,9 +43,19 @@ const CalculateChartSchema = z.object({
     .default("employed"),
   careerField: z.string().max(120).optional().default(""),
   sessionToken: z.string().trim().min(4).max(128).optional(),
+  entryHook: EntryHookSchema.optional(),
+  utmSource: z.string().trim().max(120).optional(),
+  intent: z.enum(["onboarding", "birth_time_upgrade"]).optional(),
 });
 
 export async function POST(req: NextRequest) {
+  const rateLimited = enforceRateLimit(req, {
+    namespace: "charts_calculate",
+    limit: 10,
+    windowMs: 60 * 60 * 1000,
+  });
+  if (rateLimited) return rateLimited;
+
   try {
     const rawBody = await req.json();
     const parsed = CalculateChartSchema.safeParse(rawBody);
@@ -77,6 +89,19 @@ export async function POST(req: NextRequest) {
       sessionToken,
       userId,
       userEmail,
+    });
+
+    await logFunnelEvent({
+      chartId: result.chartId,
+      email: parsed.data.email,
+      eventName: "chart_calculated",
+      entryHook: parsed.data.entryHook ?? "direct",
+      metadata: {
+        precision_mode: result.precisionMode,
+        utm_source: parsed.data.utmSource ?? null,
+        cache_case: result.cacheCase ?? null,
+        cached: result.cached,
+      },
     });
 
     const response = NextResponse.json(result, { status: 200 });

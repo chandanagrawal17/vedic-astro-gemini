@@ -12,6 +12,8 @@ import {
 import { LlmProvider } from "@/lib/llm/provider";
 import { CareerMode, RelationshipStatus } from "@/lib/types/blueprint";
 
+export const FIRST_NAME_PLACEHOLDER = "{{FIRST_NAME}}";
+
 export interface BlueprintUserProfileContext {
   firstName: string;
   relationshipStatus: RelationshipStatus;
@@ -67,7 +69,11 @@ function summarizeDivisionalChart(
   return Object.fromEntries(Object.entries(chartObj).slice(0, 14));
 }
 
-function buildChartSignalPayload(input: SynthesizeBlueprintInput) {
+/**
+ * Builds the zero-PII prompt payload sent to Gemini.
+ * Strips email and replaces first_name with the literal {{FIRST_NAME}} placeholder.
+ */
+export function buildChartSignalPayload(input: SynthesizeBlueprintInput) {
   const { normalizedChart, profile } = input;
   const isExact = normalizedChart.precisionMode === "exact";
   const isPartnered =
@@ -76,7 +82,7 @@ function buildChartSignalPayload(input: SynthesizeBlueprintInput) {
 
   return {
     userProfile: {
-      firstName: profile.firstName.trim() || "Friend",
+      firstName: FIRST_NAME_PLACEHOLDER,
       relationshipStatus: profile.relationshipStatus,
       relationshipLabel: RELATIONSHIP_LABELS[profile.relationshipStatus],
       relationshipBranch: isPartnered ? "partnered" : "solo",
@@ -129,6 +135,29 @@ function buildChartSignalPayload(input: SynthesizeBlueprintInput) {
   };
 }
 
+/**
+ * Recursively replaces {{FIRST_NAME}} placeholders with the user's real first name
+ * strictly on the server after Gemini returns validated, guardrail-clean JSON.
+ */
+export function interpolateFirstName<T>(value: T, firstName: string): T {
+  const safeName = firstName.trim() || "Friend";
+
+  if (typeof value === "string") {
+    return value.replace(/\{\{?\s*FIRST_NAME\s*\}?\}/gi, safeName) as T;
+  }
+  if (Array.isArray(value)) {
+    return value.map((item) => interpolateFirstName(item, safeName)) as T;
+  }
+  if (value && typeof value === "object") {
+    const out: Record<string, unknown> = {};
+    for (const [k, v] of Object.entries(value as Record<string, unknown>)) {
+      out[k] = interpolateFirstName(v, safeName);
+    }
+    return out as T;
+  }
+  return value;
+}
+
 function buildSystemPrompt(input: SynthesizeBlueprintInput): string {
   const { normalizedChart, profile } = input;
   const isExact = normalizedChart.precisionMode === "exact";
@@ -158,7 +187,7 @@ Your job is to translate the internal pattern calculation signals in the user pa
 
 TONE & VOICE:
 - Warm, grounded, perceptive US executive mentor—never fortune-telling, mystical fluff, doom, or clinical therapy.
-- Specific, emotionally uncanny, and actionable. Speak directly to the user ("you", using their firstName naturally where helpful).
+- Specific, emotionally uncanny, and actionable. Speak directly to the user ("you", using the literal token ${FIRST_NAME_PLACEHOLDER} naturally where helpful—never invent another name).
 - ZERO fatalism. Frame challenges as structural patterns and agency levers.
 
 ABSOLUTE JARGON BAN (STRICTLY ENFORCED BY AUTOMATED SCANNER):
@@ -191,7 +220,7 @@ function enforceDeterministicAnchors(
     profile.relationshipStatus === "relationship";
 
   const defaultUpgradeHint =
-    "Found your exact birth time? Add it anytime for a free Deep Blueprint refresh with sharper career and partnership precision.";
+    "Want sharper career & relationship precision? Add your exact birth time anytime for a free refresh.";
 
   return {
     hook_proof_json: {
@@ -262,7 +291,7 @@ ${audit.violations
 
 Rewrite ONLY the offending sentences into warm, high-agency modern behavioral psychology.
 Do NOT include any of the flagged terms or any other banned astrology, Sanskrit, numerology, fatalistic, or clinical words.
-Preserve all exact dates, numbers, branch values, and JSON structure identically.`;
+Preserve all exact dates, numbers, branch values, ${FIRST_NAME_PLACEHOLDER} tokens, and JSON structure identically.`;
 }
 
 export async function synthesizeBlueprint(
@@ -324,6 +353,9 @@ export async function synthesizeBlueprint(
       );
     }
   }
+
+  // Restore user's actual first_name server-side after validation + guardrail pass
+  finalPayload = interpolateFirstName(finalPayload, input.profile.firstName);
 
   return {
     payload: finalPayload,

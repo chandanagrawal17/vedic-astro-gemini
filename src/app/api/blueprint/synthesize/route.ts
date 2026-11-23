@@ -1,7 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { ExistingPaidAccountError } from "@/lib/cache/blueprintCache";
+import { EntryHookSchema, logFunnelEvent } from "@/lib/funnel/events";
 import { LlmProviderError } from "@/lib/llm/geminiProvider";
+import { enforceRateLimit } from "@/lib/rateLimit";
 import {
   BlueprintServiceError,
   synthesizeAndPersistBlueprint,
@@ -20,9 +22,19 @@ const SynthesizeRequestSchema = z.object({
     .enum(["employed", "founder", "freelance", "transition"])
     .optional(),
   careerField: z.string().max(120).optional(),
+  entryHook: EntryHookSchema.optional(),
+  utmSource: z.string().trim().max(120).optional(),
+  intent: z.enum(["onboarding", "birth_time_upgrade"]).optional(),
 });
 
 export async function POST(req: NextRequest) {
+  const rateLimited = enforceRateLimit(req, {
+    namespace: "blueprint_synthesize",
+    limit: 10,
+    windowMs: 60 * 60 * 1000,
+  });
+  if (rateLimited) return rateLimited;
+
   try {
     const rawBody = await req.json();
     const parsed = SynthesizeRequestSchema.safeParse(rawBody);
@@ -60,6 +72,9 @@ export async function POST(req: NextRequest) {
       email: parsed.data.email,
       userId,
       userEmail,
+      entryHook: parsed.data.entryHook,
+      utmSource: parsed.data.utmSource,
+      intent: parsed.data.intent,
       profileOverride: {
         firstName: parsed.data.firstName,
         relationshipStatus: parsed.data.relationshipStatus,
@@ -67,6 +82,19 @@ export async function POST(req: NextRequest) {
         careerField: parsed.data.careerField,
       },
     });
+
+    if (parsed.data.intent === "birth_time_upgrade") {
+      await logFunnelEvent({
+        chartId: result.chartId,
+        email: result.input.email || parsed.data.email,
+        eventName: "birth_time_upgraded",
+        entryHook: result.entryHook ?? parsed.data.entryHook ?? "direct",
+        metadata: {
+          precision_mode: result.precisionMode,
+          is_paid: result.isPaid,
+        },
+      });
+    }
 
     const response = NextResponse.json(result, { status: 200 });
     response.cookies.set("pb_session_token", result.sessionToken, {

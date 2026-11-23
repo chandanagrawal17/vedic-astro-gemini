@@ -15,10 +15,13 @@ import { getSupabaseAdminClient } from "@/lib/supabase/admin";
 import {
   BirthWindow,
   CareerMode,
+  EntryHook,
   HardResetFeedback,
   OnboardingInput,
   RelationshipStatus,
+  UnlockSource,
 } from "@/lib/types/blueprint";
+import { normalizeEntryHook } from "@/lib/funnel/events";
 
 const UUID_REGEX =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -86,6 +89,11 @@ interface BlueprintDbRow {
   model_version: string | null;
   is_paid: boolean;
   unlock_tier: "one_time_19" | "annual_39" | null;
+  unlock_source?: UnlockSource | null;
+  unlocked_at?: string | null;
+  unlocked_email_sent_at?: string | null;
+  entry_hook?: EntryHook | null;
+  utm_source?: string | null;
   created_at: string;
 }
 
@@ -103,6 +111,10 @@ export interface BlueprintApiResponse {
   isPaid: boolean;
   isUnlocked: boolean;
   unlockTier: "one_time_19" | "annual_39" | null;
+  unlockSource: UnlockSource | null;
+  unlockedAt: string | null;
+  entryHook: EntryHook | null;
+  utmSource: string | null;
   accuracyFeedback: HardResetFeedback | null;
   hook_proof_json: HookProofPayload;
   full_blueprint_json: FullBlueprintPayload | null;
@@ -223,6 +235,10 @@ function formatSanitizedResponse(params: {
     isPaid: Boolean(bp.is_paid),
     isUnlocked,
     unlockTier: bp.unlock_tier,
+    unlockSource: bp.unlock_source ?? null,
+    unlockedAt: bp.unlocked_at ?? null,
+    entryHook: bp.entry_hook ?? null,
+    utmSource: bp.utm_source ?? null,
     accuracyFeedback: bp.accuracy_feedback,
     hook_proof_json: bp.hook_proof_json,
     // CRITICAL SERVER-SIDE REDACTION RULE:
@@ -290,6 +306,9 @@ export async function synthesizeAndPersistBlueprint(params: {
   email?: string | null;
   userId?: string | null;
   userEmail?: string | null;
+  entryHook?: EntryHook | string | null;
+  utmSource?: string | null;
+  intent?: string | null;
   profileOverride?: Partial<{
     firstName: string;
     relationshipStatus: RelationshipStatus;
@@ -328,9 +347,18 @@ export async function synthesizeAndPersistBlueprint(params: {
 
   if (existingErr) assertDbError(existingErr);
 
+  const isVerifiedBetaRefresh = Boolean(
+    params.intent === "birth_time_upgrade" &&
+      params.sessionToken &&
+      params.sessionToken === chart.session_token &&
+      (existingBp?.unlock_source === "beta_free" ||
+        existingBp?.unlock_source === "beta_code")
+  );
+
   // Paid Account Privacy Guardrail: never overwrite or leak paid blueprint to unauthenticated callers
   if (
     existingBp?.is_paid === true &&
+    !isVerifiedBetaRefresh &&
     !isAuthorizedForExistingRecord({
       chartUserId: chart.user_id,
       blueprintUserId: existingBp.user_id,
@@ -437,7 +465,13 @@ export async function synthesizeAndPersistBlueprint(params: {
 
   // 3. Persist both hook_proof_json and full_blueprint_json to Supabase.
   //    If existingBp already exists (Case B context change or Case C birth time update),
-  //    UPDATE in place preserving id, user_id, session_token, and is_paid!
+  //    UPDATE in place preserving id, user_id, session_token, is_paid, unlock_source, and unlocked_at!
+  const resolvedEntryHook = params.entryHook
+    ? normalizeEntryHook(params.entryHook)
+    : existingBp?.entry_hook ?? null;
+  const resolvedUtmSource =
+    params.utmSource?.trim() || existingBp?.utm_source || null;
+
   let savedBp: BlueprintDbRow | null = null;
 
   if (existingBp) {
@@ -450,6 +484,8 @@ export async function synthesizeAndPersistBlueprint(params: {
         hook_proof_json: synthesized.payload.hook_proof_json,
         full_blueprint_json: synthesized.payload.full_blueprint_json,
         model_version: synthesized.modelVersion,
+        entry_hook: existingBp.entry_hook ?? resolvedEntryHook,
+        utm_source: existingBp.utm_source ?? resolvedUtmSource,
       })
       .eq("id", existingBp.id)
       .select("*")
@@ -470,6 +506,8 @@ export async function synthesizeAndPersistBlueprint(params: {
           hook_proof_json: synthesized.payload.hook_proof_json,
           full_blueprint_json: synthesized.payload.full_blueprint_json,
           model_version: synthesized.modelVersion,
+          entry_hook: resolvedEntryHook ?? "direct",
+          utm_source: resolvedUtmSource,
         },
         { onConflict: "chart_id" }
       )
@@ -539,7 +577,13 @@ export async function saveBlueprintFeedback(params: {
   userEmail?: string | null;
   sessionToken?: string | null;
   admin?: SupabaseAdminLike;
-}): Promise<{ ok: true; accuracyFeedback: HardResetFeedback; chartId: string }> {
+}): Promise<{
+  ok: true;
+  accuracyFeedback: HardResetFeedback;
+  chartId: string;
+  email: string | null;
+  entryHook: EntryHook | null;
+}> {
   const admin = params.admin ?? getSupabaseAdminClient();
   const chart = await findNatalChart(params.chartIdOrToken, admin);
   if (!chart) {
@@ -552,8 +596,13 @@ export async function saveBlueprintFeedback(params: {
     .from("blueprints")
     .update({ accuracy_feedback: params.feedback })
     .eq("chart_id", chart.id)
-    .select("chart_id, accuracy_feedback")
-    .maybeSingle<{ chart_id: string; accuracy_feedback: HardResetFeedback }>();
+    .select("chart_id, accuracy_feedback, email, entry_hook")
+    .maybeSingle<{
+      chart_id: string;
+      accuracy_feedback: HardResetFeedback;
+      email: string | null;
+      entry_hook: EntryHook | null;
+    }>();
 
   if (error) assertDbError(error);
   if (!updated) {
@@ -564,5 +613,7 @@ export async function saveBlueprintFeedback(params: {
     ok: true,
     chartId: updated.chart_id,
     accuracyFeedback: updated.accuracy_feedback,
+    email: updated.email ?? chart.email ?? null,
+    entryHook: updated.entry_hook ?? null,
   };
 }

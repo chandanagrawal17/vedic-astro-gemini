@@ -48,6 +48,7 @@ export interface CalculateChartParams {
   sessionToken?: string;
   userId?: string | null;
   userEmail?: string | null;
+  intent?: string | null;
 }
 
 export interface CalculateChartOutput {
@@ -227,6 +228,8 @@ export async function calculateAndPersistChart(
         contextHash,
         authUserId: params.userId,
         authUserEmail: params.userEmail,
+        sessionToken: requestedToken,
+        intent: params.intent,
       });
     } catch (err) {
       assertMigrationError(err as { code?: string; message?: string });
