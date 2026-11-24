@@ -18,7 +18,6 @@ import { SolarOrbHero } from "@/components/ui/SolarOrbHero";
 import { BragCardModal } from "@/components/blueprint/BragCardModal";
 import { CareerPaidSection } from "@/components/blueprint/CareerSections";
 import { DailyCommandCenter } from "@/components/blueprint/DailyCommandCenter";
-import { HardResetPaidSection } from "@/components/blueprint/HardResetSections";
 import { LifeChaptersArc } from "@/components/blueprint/LifeChaptersArc";
 import { RelationshipPaidSection } from "@/components/blueprint/RelationshipSections";
 import { SynergyInviteCard } from "@/components/synergy/SynergyInviteCard";
@@ -47,11 +46,10 @@ import {
 } from "@/lib/store/sessionStore";
 import { buildMockBlueprint, DEFAULT_ONBOARDING_INPUT } from "@/lib/mock/blueprintMock";
 
-type HubTab = "today" | "overview" | "eras" | "career" | "love" | "blind_spot";
+type HubTab = "today" | "eras" | "career" | "love" | "blind_spot";
 
 const TABS: { id: HubTab; label: string; hookKey: HookKey }[] = [
   { id: "today", label: "Today", hookKey: "hard_reset" },
-  { id: "overview", label: "Overview", hookKey: "hard_reset" },
   { id: "eras", label: "Eras", hookKey: "eras" },
   { id: "career", label: "Career", hookKey: "career" },
   { id: "love", label: "Love", hookKey: "relationship" },
@@ -567,32 +565,35 @@ function BlueprintHubContent() {
           </div>
         )}
 
-        {/* TAB 1: OVERVIEW (Full Tight Monthly Hard Reset Timeline) */}
-        {activeTab === "overview" && (
-          <div className="mt-5">
-            <HardResetPaidSection
-              hardReset={paidPayload.hardReset}
-              confirmedFlashpointIds={session.confirmedFlashpointIds ?? []}
-              onToggleFlashpoint={handleToggleFlashpoint}
-            />
-          </div>
-        )}
-
-        {/* TAB 2: ERAS */}
+        {/* TAB 1: ERAS (10-Year Trajectory + Clickable Reset/Pressure Dots Pop-Up) */}
         {activeTab === "eras" && (
           <div className="mt-5 space-y-4">
             <ObsidianCard>
-              <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[#F5A65B]">
-                Life Chapters · Interactive Arc
-              </p>
+              <div className="flex items-center justify-between gap-2">
+                <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[#F5A65B]">
+                  Life Chapters · Interactive Arc
+                </p>
+                <span className="rounded-full border border-[#FF6B2B]/35 bg-[#FF6B2B]/12 px-2.5 py-0.5 text-[10px] font-semibold text-[#F5A65B]">
+                  Tap any dot
+                </span>
+              </div>
               <h2 className="mt-1 font-serif text-[24px] text-[#FDF6EE]">
                 Your 10-Year Trajectory
               </h2>
+
+              {paidPayload.hardReset.corePatternThread && (
+                <p className="mt-2 border-l-2 border-[#FF6B2B]/60 pl-3 text-[13.5px] leading-relaxed text-[#D9CEC5]">
+                  {paidPayload.hardReset.corePatternThread}
+                </p>
+              )}
 
               <LifeChaptersArc
                 eras={freePayload.eras}
                 isUnlocked={true}
                 era4Preview={paidPayload.eras.era4Preview}
+                hardReset={paidPayload.hardReset}
+                confirmedFlashpointIds={session.confirmedFlashpointIds ?? []}
+                onToggleFlashpoint={handleToggleFlashpoint}
               />
             </ObsidianCard>
 
