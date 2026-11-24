@@ -14,6 +14,7 @@ import {
   interpolateFirstName,
   synthesizeBlueprint,
 } from "@/lib/llm/synthesizeBlueprint";
+import { POST as betaUnlockRoute } from "@/app/api/blueprint/[chartId]/beta-unlock/route";
 import { POST as funnelEventRoute } from "@/app/api/funnel/event/route";
 import { performBetaUnlock } from "@/lib/payments/betaUnlockService";
 import { enforceRateLimit, resetRateLimiter } from "@/lib/rateLimit";
@@ -462,4 +463,43 @@ test("Client funnel event endpoint rejects forged server-authoritative events, a
   );
   assert.equal(interpolated.a, "Hello Maya");
   assert.equal(interpolated.b, "Hey Maya and Maya");
+});
+
+test("POST /api/blueprint/[chartId]/beta-unlock enforces per-IP rate limit (429 after 10 requests)", async () => {
+  resetRateLimiter();
+
+  for (let i = 0; i < 10; i++) {
+    const req = new NextRequest(
+      "http://localhost:3000/api/blueprint/demo-session/beta-unlock",
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-forwarded-for": "198.51.100.77",
+        },
+        body: JSON.stringify({}),
+      }
+    );
+    const res = await betaUnlockRoute(req, {
+      params: Promise.resolve({ chartId: "demo-session" }),
+    });
+    assert.equal(res.status, 404);
+  }
+
+  const eleventhReq = new NextRequest(
+    "http://localhost:3000/api/blueprint/demo-session/beta-unlock",
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "x-forwarded-for": "198.51.100.77",
+      },
+      body: JSON.stringify({}),
+    }
+  );
+  const eleventhRes = await betaUnlockRoute(eleventhReq, {
+    params: Promise.resolve({ chartId: "demo-session" }),
+  });
+  assert.equal(eleventhRes.status, 429);
+  assert.ok(eleventhRes.headers.get("Retry-After"));
 });

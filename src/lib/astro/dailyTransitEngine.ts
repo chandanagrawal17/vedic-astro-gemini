@@ -29,7 +29,6 @@ import {
   DailyCalendarDay,
   DailyCommandCenterPayload,
   DailyMemoryTag,
-  DailySomaticPhase,
   DailyToneStatus,
   MoveAuditAction,
   MoveAuditResult,

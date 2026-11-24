@@ -76,6 +76,38 @@
     },
     {
       "planet": "Sun",
+      "house": 2,
+      "pillar": "career_and_wellness",
+      "trait": "Strong pride in financial independence, clear speech, and building tangible stability.",
+      "blind_spot": "Tying self-worth too tightly to income or speaking bluntly when defending values.",
+      "actionable_shift": "Separate net worth from identity and pause before reacting in money or family conversations."
+    },
+    {
+      "planet": "Sun",
+      "house": 3,
+      "pillar": "career",
+      "trait": "Self-starting initiative, courageous voice, and strong drive to lead through communication.",
+      "blind_spot": "Over-asserting opinions or trying to prove capability through constant hustle.",
+      "actionable_shift": "Focus your initiative on one high-impact project at a time and listen twice as much as you pitch."
+    },
+    {
+      "planet": "Sun",
+      "house": 4,
+      "pillar": "personal_development",
+      "trait": "Strong need for personal sovereignty, a proud home base, and deep inner dignity.",
+      "blind_spot": "Carrying private pressure silently or struggling to relax when your environment feels chaotic.",
+      "actionable_shift": "Protect a calm, well-ordered personal space where you can drop the leadership armor."
+    },
+    {
+      "planet": "Sun",
+      "house": 5,
+      "pillar": "career_and_love",
+      "trait": "Radiant creative confidence, strong personal vision, and natural flair for mentoring or leading.",
+      "blind_spot": "Taking creative critique personally or needing admiration to feel secure in romance.",
+      "actionable_shift": "Create for the joy of mastery first and welcome feedback without defending your ego."
+    },
+    {
+      "planet": "Sun",
       "house": 6,
       "pillar": "career_and_wellness",
       "trait": "High pride in competence, troubleshooting, and stepping up during messy operational crunches.",
@@ -89,6 +121,22 @@
       "trait": "Drawn to strong, capable partners and visible one-on-one alliances or client-facing work.",
       "blind_spot": "Quiet power struggles or dimming your own needs to keep a partnership looking smooth.",
       "actionable_shift": "Treat partnership as a shared table of equals where direct needs are spoken early."
+    },
+    {
+      "planet": "Sun",
+      "house": 8,
+      "pillar": "personal_development",
+      "trait": "Deep psychological courage, strong investigative instinct, and capacity for major personal reinvention.",
+      "blind_spot": "Guarding vulnerability tightly or engaging in quiet control struggles during transitions.",
+      "actionable_shift": "Share what you are navigating with one trusted confidant instead of carrying it alone."
+    },
+    {
+      "planet": "Sun",
+      "house": 9,
+      "pillar": "career_and_personal",
+      "trait": "Principled, big-picture leader driven by meaning, ethics, and long-horizon vision.",
+      "blind_spot": "Being overly certain of your own worldview or clashing with authority figures.",
+      "actionable_shift": "Stay curious about opposing viewpoints while anchoring decisions in your core values."
     },
     {
       "planet": "Sun",
@@ -107,6 +155,14 @@
       "actionable_shift": "Choose two or three high-trust allies and build around tangible long-term goals."
     },
     {
+      "planet": "Sun",
+      "house": 12,
+      "pillar": "personal_development",
+      "trait": "Quiet, behind-the-scenes strength with deep capacity for reflective leadership and global perspective.",
+      "blind_spot": "Downplaying your own contributions or feeling drained by constant public performance.",
+      "actionable_shift": "Balance private deep work with planned moments of clear visibility."
+    },
+    {
       "planet": "Moon",
       "house": 1,
       "pillar": "identity_and_love",
@@ -116,11 +172,43 @@
     },
     {
       "planet": "Moon",
+      "house": 2,
+      "pillar": "personal_development",
+      "trait": "Emotional security is deeply linked to stability, comforting routines, and warm communication.",
+      "blind_spot": "Spending or eating for comfort during stress, or letting mood swings affect financial discipline.",
+      "actionable_shift": "Automate savings and check in with your emotional baseline before making impulse purchases."
+    },
+    {
+      "planet": "Moon",
+      "house": 3,
+      "pillar": "personal_development",
+      "trait": "Curious, expressive mind that thrives on conversation, writing, and varied daily movement.",
+      "blind_spot": "Mental restlessness, scattered focus, or absorbing anxiety from constant messaging.",
+      "actionable_shift": "Batch notifications and protect one quiet, screen-free focus block every morning."
+    },
+    {
+      "planet": "Moon",
       "house": 4,
       "pillar": "wellness_and_love",
       "trait": "Deeply values a calm, protective home base and loyal, comforting closeness.",
       "blind_spot": "Retreating into silence or over-protecting routines when life feels unpredictable.",
       "actionable_shift": "Keep your home environment uncluttered and name small emotional needs before resentment builds."
+    },
+    {
+      "planet": "Moon",
+      "house": 5,
+      "pillar": "love",
+      "trait": "Imaginative, heartfelt expression and deep emotional investment in romance and creative work.",
+      "blind_spot": "Riding emotional highs and lows in early dating or tying mood to creative validation.",
+      "actionable_shift": "Let early chemistry unfold slowly and ground big feelings in steady daily actions."
+    },
+    {
+      "planet": "Moon",
+      "house": 6,
+      "pillar": "wellness",
+      "trait": "Attentive helper with strong empathy for practical problems and daily team dynamics.",
+      "blind_spot": "Stress showing up quickly in digestion or sleep, or worrying over small unresolved tasks.",
+      "actionable_shift": "Close your workday with a 5-minute written brain dump so unfinished tasks stay out of bed."
     },
     {
       "planet": "Moon",
@@ -140,11 +228,27 @@
     },
     {
       "planet": "Moon",
+      "house": 9,
+      "pillar": "personal_development",
+      "trait": "Emotionally uplifted by learning, travel, philosophy, and connecting daily life to wider meaning.",
+      "blind_spot": "Restlessness with routine tasks or shifting beliefs based on temporary mood.",
+      "actionable_shift": "Translate big inspiration into one concrete weekly habit."
+    },
+    {
+      "planet": "Moon",
       "house": 10,
       "pillar": "career",
       "trait": "Needs work to feel personally meaningful and emotionally connected to real people.",
       "blind_spot": "Restlessness or motivation drops whenever a role turns purely mechanical or thankless.",
       "actionable_shift": "Pair practical income milestones with visible human impact or creative ownership."
+    },
+    {
+      "planet": "Moon",
+      "house": 11,
+      "pillar": "career_and_love",
+      "trait": "Warm community builder who thrives in supportive circles and emotionally meaningful goals.",
+      "blind_spot": "Letting group opinions sway personal priorities or over-extending socially when tired.",
+      "actionable_shift": "Curate a small inner circle of energizing peers and protect solo recharge time."
     },
     {
       "planet": "Moon",
@@ -164,11 +268,35 @@
     },
     {
       "planet": "Mars",
+      "house": 2,
+      "pillar": "career",
+      "trait": "Direct, persuasive communicator with strong drive to earn and protect resources.",
+      "blind_spot": "Sharp tone during disagreements or impatience with slow financial growth.",
+      "actionable_shift": "Lower your pace in high-stakes talks and channel earning drive into structured long-term plans."
+    },
+    {
+      "planet": "Mars",
+      "house": 3,
+      "pillar": "career",
+      "trait": "Bold execution, fast decision-making, and high stamina for hands-on problem solving.",
+      "blind_spot": "Interrupting others, rushing drafts, or turning casual debates into competitions.",
+      "actionable_shift": "Channel urgency into shipping tangible work rather than winning small arguments."
+    },
+    {
+      "planet": "Mars",
       "house": 4,
       "pillar": "love_and_wellness",
       "trait": "Fiercely protective of personal space, family, and tangible home/asset security.",
       "blind_spot": "Bringing work tension home or snapping over minor domestic friction when overstretched.",
       "actionable_shift": "Create a clear decompression buffer between finishing work and engaging at home."
+    },
+    {
+      "planet": "Mars",
+      "house": 5,
+      "pillar": "career_and_love",
+      "trait": "Passionate, bold creator with sharp strategic instincts and high competitive drive.",
+      "blind_spot": "Impulsive leaps in romance or speculative decisions driven by adrenaline.",
+      "actionable_shift": "Apply a 24-hour cooling-off rule before high-stakes bets or heated romantic replies."
     },
     {
       "planet": "Mars",
@@ -196,11 +324,35 @@
     },
     {
       "planet": "Mars",
+      "house": 9,
+      "pillar": "career_and_personal",
+      "trait": "Courageous advocate for convictions with strong drive to explore, teach, and champion bold ideas.",
+      "blind_spot": "Debating too forcefully or losing patience with slower, more cautious thinkers.",
+      "actionable_shift": "Aim your conviction at building solutions rather than converting skeptics."
+    },
+    {
+      "planet": "Mars",
       "house": 10,
       "pillar": "career",
       "trait": "Ambitious, execution-focused builder who thrives with clear targets and visible autonomy.",
       "blind_spot": "Clashing with slow bureaucracy or micromanaging teammates who move at a different pace.",
       "actionable_shift": "Own high-leverage execution lanes while letting agreed processes handle routine coordination."
+    },
+    {
+      "planet": "Mars",
+      "house": 11,
+      "pillar": "career",
+      "trait": "Driven goal-setter who rallies teams, executes ambitious targets, and wins through momentum.",
+      "blind_spot": "Turning friendships into rivalries or pushing collaborators harder than they can pace.",
+      "actionable_shift": "Celebrate shared wins openly and match your pace to the team's bandwidth."
+    },
+    {
+      "planet": "Mars",
+      "house": 12,
+      "pillar": "wellness",
+      "trait": "Strong drive in solo deep work, research, or behind-the-scenes execution.",
+      "blind_spot": "Bottled-up frustration, restless sleep, or passive-aggressive tension when boundaries are crossed.",
+      "actionable_shift": "Release physical stress through regular movement and address irritation directly in daylight."
     },
     {
       "planet": "Mercury",
@@ -228,6 +380,22 @@
     },
     {
       "planet": "Mercury",
+      "house": 4,
+      "pillar": "personal_development",
+      "trait": "Active, curious inner world that loves learning, organizing spaces, and thoughtful home dialogue.",
+      "blind_spot": "Overthinking emotional matters instead of feeling them, or bringing work screens into rest time.",
+      "actionable_shift": "Keep bedrooms and evening wind-down hours strictly work-free."
+    },
+    {
+      "planet": "Mercury",
+      "house": 5,
+      "pillar": "career",
+      "trait": "Playful intellect, sharp wit, and strong talent for strategy, writing, and creative problem-solving.",
+      "blind_spot": "Over-analyzing romance or jumping between clever ideas without finishing one.",
+      "actionable_shift": "Pick one creative flagship project per quarter and take it all the way to completion."
+    },
+    {
+      "planet": "Mercury",
       "house": 6,
       "pillar": "career",
       "trait": "Methodical troubleshooter who spots flaws in workflows, budgets, and plans early.",
@@ -244,11 +412,43 @@
     },
     {
       "planet": "Mercury",
+      "house": 8,
+      "pillar": "career_and_personal",
+      "trait": "Penetrating research mind that uncovers hidden patterns, root causes, and strategic leverage.",
+      "blind_spot": "Over-analyzing motives, spiraling on worst-case scenarios, or keeping thoughts overly guarded.",
+      "actionable_shift": "Test assumptions through direct, calm questions rather than silent detective work."
+    },
+    {
+      "planet": "Mercury",
+      "house": 9,
+      "pillar": "career",
+      "trait": "Synthesizes big ideas cleanly, loves cross-disciplinary learning, and communicates vision clearly.",
+      "blind_spot": "Staying in endless research mode or over-theorizing instead of executing.",
+      "actionable_shift": "Pair every new concept you learn with a small real-world experiment within 7 days."
+    },
+    {
+      "planet": "Mercury",
       "house": 10,
       "pillar": "career",
       "trait": "Excels in strategy, product framing, advisory work, and translating complex ideas simply.",
       "blind_spot": "Spreading reputation thin by saying yes to too many side requests and meetings.",
       "actionable_shift": "Anchor your public reputation around one clear problem you solve better than most."
+    },
+    {
+      "planet": "Mercury",
+      "house": 11,
+      "pillar": "career",
+      "trait": "Natural connector and strategist who turns networks, communities, and ideas into tangible leverage.",
+      "blind_spot": "Spreading attention across too many contacts or shallow networking.",
+      "actionable_shift": "Invest deeply in 10 high-trust relationships rather than 100 casual connections."
+    },
+    {
+      "planet": "Mercury",
+      "house": 12,
+      "pillar": "personal_development",
+      "trait": "Rich imagination, subtle intuition, and talent for synthesizing complex or unseen patterns.",
+      "blind_spot": "Late-night mental racing, overthinking in solitude, or forgetting practical follow-ups.",
+      "actionable_shift": "Capture nighttime ideas in a notebook and review practical to-dos the next morning."
     },
     {
       "planet": "Jupiter",
@@ -260,6 +460,30 @@
     },
     {
       "planet": "Jupiter",
+      "house": 2,
+      "pillar": "career",
+      "trait": "Generous, principled approach to wealth, wise counsel, and steady resource expansion.",
+      "blind_spot": "Over-promising, casual overspending, or assuming abundance will always cover loose budgets.",
+      "actionable_shift": "Pair generosity with clear financial guardrails and written budgets."
+    },
+    {
+      "planet": "Jupiter",
+      "house": 3,
+      "pillar": "career",
+      "trait": "Encouraging communicator, natural teacher, and optimistic builder of networks and ideas.",
+      "blind_spot": "Over-committing to too many side projects or glossing over operational details.",
+      "actionable_shift": "Trim your active commitments to three priorities and delegate fine-grain execution."
+    },
+    {
+      "planet": "Jupiter",
+      "house": 4,
+      "pillar": "personal_development",
+      "trait": "Grounded inner optimism, generous hospitality, and a steady moral anchor.",
+      "blind_spot": "Over-giving at home or avoiding uncomfortable emotional truths behind forced positivity.",
+      "actionable_shift": "Balance warmth with honest boundaries so your home stays restorative for you too."
+    },
+    {
+      "planet": "Jupiter",
       "house": 5,
       "pillar": "love_and_career",
       "trait": "Creative generosity, warm humor, and strong intuition for meaningful bets and mentoring.",
@@ -268,11 +492,27 @@
     },
     {
       "planet": "Jupiter",
+      "house": 6,
+      "pillar": "career_and_wellness",
+      "trait": "Constructive problem solver who turns workplace friction into fair, scalable solutions.",
+      "blind_spot": "Taking on too many people's problems or neglecting consistent fitness routines.",
+      "actionable_shift": "Protect simple daily health basics and help others build capability instead of rescuing them."
+    },
+    {
+      "planet": "Jupiter",
       "house": 7,
       "pillar": "love",
       "trait": "Attracts growth-minded, generous partners and thrives in relationships built on mutual respect.",
       "blind_spot": "Expecting a partner to share every life philosophy or overlooking small practical friction early on.",
       "actionable_shift": "Align on everyday logistics—money, schedules, downtime—with the same warmth you bring to values."
+    },
+    {
+      "planet": "Jupiter",
+      "house": 8,
+      "pillar": "personal_development",
+      "trait": "Steady wisdom during major life pivots, strong intuition, and grace under shared financial or emotional complexity.",
+      "blind_spot": "Assuming everything will sort itself out without formalizing shared agreements.",
+      "actionable_shift": "Put shared finances, expectations, and boundaries in writing while trust is high."
     },
     {
       "planet": "Jupiter",
@@ -299,12 +539,44 @@
       "actionable_shift": "Focus energy on five high-reciprocity peers who match your integrity and drive."
     },
     {
+      "planet": "Jupiter",
+      "house": 12,
+      "pillar": "personal_development",
+      "trait": "Deep compassion, restorative solitude, and natural ease with big-picture reflection and travel.",
+      "blind_spot": "Over-giving quietly or letting expenses drift without close tracking.",
+      "actionable_shift": "Pair generous instincts with a monthly expense check-in and protected quiet mornings."
+    },
+    {
       "planet": "Venus",
       "house": 1,
       "pillar": "identity_and_love",
       "trait": "Approachable warmth, strong aesthetic taste, and natural ease in social or client settings.",
       "blind_spot": "Softening real opinions to keep everyone comfortable until quiet frustration builds.",
       "actionable_shift": "Practice stating a clean preference early—warmth and directness work best together."
+    },
+    {
+      "planet": "Venus",
+      "house": 2,
+      "pillar": "love_and_career",
+      "trait": "Refined taste, diplomatic speech, and natural ability to attract resources through aesthetics or rapport.",
+      "blind_spot": "Overspending on comfort or softening honest feedback to keep the peace.",
+      "actionable_shift": "Enjoy quality intentionally while keeping direct, clear boundaries around money and values."
+    },
+    {
+      "planet": "Venus",
+      "house": 3,
+      "pillar": "love_and_career",
+      "trait": "Warm, artistic expression and effortless charm in writing, media, and everyday rapport.",
+      "blind_spot": "Avoiding tough conversations or procrastinating when tasks feel uninspiring.",
+      "actionable_shift": "Pair creative flow with firm deadlines and practice stating plain requests early."
+    },
+    {
+      "planet": "Venus",
+      "house": 4,
+      "pillar": "love",
+      "trait": "Deep appreciation for beauty, peaceful surroundings, and affectionate domestic harmony.",
+      "blind_spot": "Sweeping tension under the rug to keep the vibe pleasant or over-investing in comfort.",
+      "actionable_shift": "Address small domestic friction early with kindness before it builds into quiet distance."
     },
     {
       "planet": "Venus",
@@ -316,6 +588,14 @@
     },
     {
       "planet": "Venus",
+      "house": 6,
+      "pillar": "love_and_career",
+      "trait": "Brings grace, diplomacy, and calm collaboration into demanding work environments.",
+      "blind_spot": "Avoiding necessary conflict at work or over-accommodating in relationships to prevent friction.",
+      "actionable_shift": "Practice kind, direct pushback early so small compromises do not turn into resentment."
+    },
+    {
+      "planet": "Venus",
       "house": 7,
       "pillar": "love",
       "trait": "Appreciation for harmony, charm, mutual care, and relational connection[cite: 1, 2, 6].",
@@ -324,11 +604,35 @@
     },
     {
       "planet": "Venus",
+      "house": 8,
+      "pillar": "love",
+      "trait": "Deeply loyal, magnetic, and drawn to soulful emotional intimacy over surface-level connection.",
+      "blind_spot": "Testing partner loyalty quietly or getting pulled into all-or-nothing emotional dynamics.",
+      "actionable_shift": "Name your need for depth and reassurance directly rather than waiting for someone to guess."
+    },
+    {
+      "planet": "Venus",
+      "house": 9,
+      "pillar": "love_and_personal",
+      "trait": "Warm, open-minded, and drawn to partners and experiences that expand culture and perspective.",
+      "blind_spot": "Idealizing distant possibilities while overlooking grounded everyday compatibility.",
+      "actionable_shift": "Look for shared daily values alongside shared big-picture dreams."
+    },
+    {
+      "planet": "Venus",
       "house": 10,
       "pillar": "career",
       "trait": "Thrives in design, brand, client relationships, people-centered leadership, or polished craft.",
       "blind_spot": "Undercharging or taking on extra emotional labor to keep key stakeholders happy.",
       "actionable_shift": "Tie relational grace to explicit scope, clear pricing, and measurable outcomes."
+    },
+    {
+      "planet": "Venus",
+      "house": 11,
+      "pillar": "love_and_career",
+      "trait": "Socially magnetic, collaborative, and gifted at building warm, mutually beneficial alliances.",
+      "blind_spot": "Blurring boundaries between friendship and romance, or prioritizing popularity over depth.",
+      "actionable_shift": "Be clear about your intentions early in both friendships and partnerships."
     },
     {
       "planet": "Venus",
@@ -348,11 +652,35 @@
     },
     {
       "planet": "Saturn",
+      "house": 2,
+      "pillar": "career",
+      "trait": "Patient, disciplined wealth builder who earns lasting stability through steady consistency.",
+      "blind_spot": "Scarcity mindset, guarded speech, or feeling overly burdened by family obligations.",
+      "actionable_shift": "Track measurable progress quarterly so caution does not harden into chronic worry."
+    },
+    {
+      "planet": "Saturn",
+      "house": 3,
+      "pillar": "career",
+      "trait": "Methodical thinker who masters complex skills through deliberate, long-term practice.",
+      "blind_spot": "Self-doubt before publishing ideas or hesitating too long before taking the first step.",
+      "actionable_shift": "Ship small, imperfect iterations weekly to build momentum over perfectionism."
+    },
+    {
+      "planet": "Saturn",
       "house": 4,
       "pillar": "wellness_and_love",
       "trait": "Takes long-term stability, property, and domestic commitments seriously.",
       "blind_spot": "Feeling emotionally guarded or duty-bound at home rather than letting yourself unwind.",
       "actionable_shift": "Build guilt-free weekly rest rituals so home feels like recovery, not another obligation."
+    },
+    {
+      "planet": "Saturn",
+      "house": 5,
+      "pillar": "love_and_career",
+      "trait": "Serious, disciplined craftsmanship and a loyal, long-view approach to love and creative output.",
+      "blind_spot": "Being overly cautious about joy, delaying creative launches, or fearing romantic rejection.",
+      "actionable_shift": "Schedule unstructured play and treat early creative drafts as experiments, not final verdicts."
     },
     {
       "planet": "Saturn",
@@ -380,11 +708,27 @@
     },
     {
       "planet": "Saturn",
+      "house": 9,
+      "pillar": "career_and_personal",
+      "trait": "Earns deep, durable wisdom through lived experience, ethical rigor, and patient mastery.",
+      "blind_spot": "Skepticism toward mentors or holding yourself to overly rigid moral standards.",
+      "actionable_shift": "Allow your principles to evolve through experience rather than perfectionism."
+    },
+    {
+      "planet": "Saturn",
       "house": 10,
       "pillar": "career",
       "trait": "Built for compounding authority, durable systems, and respected long-game leadership.",
       "blind_spot": "Delayed confidence or feeling like an imposter despite carrying heavy real responsibility.",
       "actionable_shift": "Document your track record quarterly and claim the scope and title you already run."
+    },
+    {
+      "planet": "Saturn",
+      "house": 11,
+      "pillar": "career",
+      "trait": "Builds durable, high-trust alliances and achieves major long-term goals through steady compounding.",
+      "blind_spot": "Feeling like an outsider in large groups or getting discouraged when big wins take time.",
+      "actionable_shift": "Focus on 3-to-5-year compounding goals and lean into small, loyal communities."
     },
     {
       "planet": "Saturn",
@@ -404,6 +748,38 @@
     },
     {
       "planet": "Rahu",
+      "house": 2,
+      "pillar": "career",
+      "trait": "Unconventional earning instincts, bold communication style, and appetite for outsized financial growth.",
+      "blind_spot": "Chasing shiny income shortcuts or exaggerating to make a stronger impression.",
+      "actionable_shift": "Ground ambitious financial moves in verifiable numbers and transparent communication."
+    },
+    {
+      "planet": "Rahu",
+      "house": 3,
+      "pillar": "career",
+      "trait": "Fearless communicator with sharp instincts for modern media, bold pitches, and unconventional paths.",
+      "blind_spot": "Restless comparison or taking calculated risks without a fallback plan.",
+      "actionable_shift": "Pair bold outreach with a clear 90-day execution checklist."
+    },
+    {
+      "planet": "Rahu",
+      "house": 4,
+      "pillar": "personal_development",
+      "trait": "Strong drive to reinvent your living environment, break family molds, and build a bigger life.",
+      "blind_spot": "Chronic restlessness at home or feeling like peace is always one move away.",
+      "actionable_shift": "Anchor yourself in three simple daily grounding habits wherever you currently live."
+    },
+    {
+      "planet": "Rahu",
+      "house": 5,
+      "pillar": "career_and_love",
+      "trait": "Magnetic originality, bold creative ambition, and strong appetite for standout recognition.",
+      "blind_spot": "Chasing intense romantic highs or over-indexing on viral attention over substance.",
+      "actionable_shift": "Filter both creative bets and romantic prospects for long-term steadiness, not just spark."
+    },
+    {
+      "planet": "Rahu",
       "house": 6,
       "pillar": "career",
       "trait": "Fearless problem-solver who spots unconventional angles in competitive or messy arenas.",
@@ -420,11 +796,43 @@
     },
     {
       "planet": "Rahu",
+      "house": 8,
+      "pillar": "personal_development",
+      "trait": "Fearless explorer of taboo or complex territory with sharp instincts for rapid transformation.",
+      "blind_spot": "Attraction to high-drama transitions or sudden, unvetted financial risks.",
+      "actionable_shift": "Channel your appetite for reinvention into planned pivots with clear downside protection."
+    },
+    {
+      "planet": "Rahu",
+      "house": 9,
+      "pillar": "career_and_personal",
+      "trait": "Unconventional visionary who challenges outdated rules and thrives across global or cross-cultural arenas.",
+      "blind_spot": "Rejecting solid fundamentals just to be different or chasing exotic philosophies without grounding.",
+      "actionable_shift": "Keep the proven basics that work while innovating on the edges."
+    },
+    {
+      "planet": "Rahu",
       "house": 10,
       "pillar": "career",
       "trait": "Strong appetite for breakthrough visibility, category-building, and modern unconventional roles.",
       "blind_spot": "Restless comparison or jumping lanes right before compounding authority pays off.",
       "actionable_shift": "Commit to one distinctive positioning thesis long enough for trust to compound."
+    },
+    {
+      "planet": "Rahu",
+      "house": 11,
+      "pillar": "career",
+      "trait": "High-leverage networker with bold ambition and strong instincts for scale and modern distribution.",
+      "blind_spot": "Chasing status-heavy circles or measuring fulfillment strictly by external milestones.",
+      "actionable_shift": "Audit your goals annually to make sure you still want the life your ambition is building."
+    },
+    {
+      "planet": "Rahu",
+      "house": 12,
+      "pillar": "personal_development",
+      "trait": "Vivid imagination, strong draw to global environments, and creative breakthroughs in solitude.",
+      "blind_spot": "Escapist scrolling, irregular sleep schedules, or chasing clarity outside yourself.",
+      "actionable_shift": "Set a firm evening screen cutoff and ground your imagination in a daily creative output."
     },
     {
       "planet": "Ketu",
@@ -436,11 +844,43 @@
     },
     {
       "planet": "Ketu",
+      "house": 2,
+      "pillar": "personal_development",
+      "trait": "Detached from status spending, minimalist instincts, and blunt, stripped-down honesty.",
+      "blind_spot": "Neglecting practical financial tracking or sounding distant in close family conversations.",
+      "actionable_shift": "Set up simple automated money systems so practical stability runs smoothly in the background."
+    },
+    {
+      "planet": "Ketu",
+      "house": 3,
+      "pillar": "personal_development",
+      "trait": "Quietly observant, independent thinker who prefers deep focus over small talk.",
+      "blind_spot": "Under-communicating progress or pulling back right when visibility matters.",
+      "actionable_shift": "Share concise written updates proactively so collaborators stay aligned."
+    },
+    {
+      "planet": "Ketu",
       "house": 4,
       "pillar": "wellness_and_love",
       "trait": "Minimalist inner independence and intuitive sense of when a place or routine is outgrown.",
       "blind_spot": "Feeling subtly unanchored at home or detaching abruptly when domestic stress rises.",
       "actionable_shift": "Keep simple, grounding daily habits at home—regular meals, clean space, steady sleep."
+    },
+    {
+      "planet": "Ketu",
+      "house": 5,
+      "pillar": "personal_development",
+      "trait": "Deep intuitive discernment, original insight, and quiet mastery outside mainstream trends.",
+      "blind_spot": "Second-guessing creative instincts or detaching abruptly when romance feels performative.",
+      "actionable_shift": "Trust your quiet pattern recognition and communicate your need for depth clearly."
+    },
+    {
+      "planet": "Ketu",
+      "house": 6,
+      "pillar": "wellness",
+      "trait": "Calm under crisis, intuitive troubleshooter, and naturally unbothered by petty office politics.",
+      "blind_spot": "Ignoring early physical stress signals or disengaging from routine maintenance tasks.",
+      "actionable_shift": "Keep health checkups and admin routines on autopilot so small issues never compound."
     },
     {
       "planet": "Ketu",
@@ -452,11 +892,43 @@
     },
     {
       "planet": "Ketu",
+      "house": 8,
+      "pillar": "personal_development",
+      "trait": "Sharp gut intuition, calm detachment during sudden change, and deep inner resilience.",
+      "blind_spot": "Withdrawing abruptly during emotional intensity or neglecting shared practical details.",
+      "actionable_shift": "Stay present through uncomfortable conversations in short, structured check-ins."
+    },
+    {
+      "planet": "Ketu",
+      "house": 9,
+      "pillar": "personal_development",
+      "trait": "Independent thinker with deep inner philosophy and little need for external dogma.",
+      "blind_spot": "Dismissing helpful mentorship or feeling disconnected from traditional paths.",
+      "actionable_shift": "Stay open to practical teachers who have already solved the specific problem in front of you."
+    },
+    {
+      "planet": "Ketu",
       "house": 10,
       "pillar": "career",
       "trait": "Sharp specialist mastery and quiet integrity that dislikes noisy office politics.",
       "blind_spot": "Detaching from traditional ambition or walking away from roles instead of renegotiating terms.",
       "actionable_shift": "Build a clean craft-led or advisory lane where results speak louder than performative meetings."
+    },
+    {
+      "planet": "Ketu",
+      "house": 11,
+      "pillar": "personal_development",
+      "trait": "Selective about company, unimpressed by hype, and motivated by authentic impact over applause.",
+      "blind_spot": "Pulling away from supportive networks right when collaboration would accelerate progress.",
+      "actionable_shift": "Keep two or three deeply aligned allies close and ask for support when scaling."
+    },
+    {
+      "planet": "Ketu",
+      "house": 12,
+      "pillar": "personal_development",
+      "trait": "Natural capacity for stillness, letting go of ego noise, and deep meditative clarity.",
+      "blind_spot": "Checking out from mundane responsibilities when life feels overly noisy.",
+      "actionable_shift": "Use short daily stillness practices to recharge, then re-engage with one concrete real-world task."
     }
   ]
 }

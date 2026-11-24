@@ -112,6 +112,8 @@ function OnboardingPageContent() {
     useState<RelationshipStatus | null>(null);
   const [careerMode, setCareerMode] = useState<CareerMode>("employed");
   const [careerField, setCareerField] = useState("");
+  const [step3Error, setStep3Error] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const [cityResults, setCityResults] = useState<LocationOption[]>(
     MOCK_CITIES.slice(0, 12)
@@ -173,6 +175,8 @@ function OnboardingPageContent() {
     setSelectedCity(city);
     setCityQuery(city.cityName);
     setShowCityList(false);
+    setStep1Error("");
+    setStep3Error("");
   };
 
   const handleStep1Next = (e: React.FormEvent) => {
@@ -189,6 +193,10 @@ function OnboardingPageContent() {
       setStep1Error("Please enter or select your birth city.");
       return;
     }
+    if (!selectedCity && cityQuery.trim().length < 2) {
+      setStep1Error("Please select a birth city from the dropdown.");
+      return;
+    }
     const emailValidation = z
       .string()
       .trim()
@@ -202,6 +210,7 @@ function OnboardingPageContent() {
       return;
     }
     setStep1Error("");
+    setStep3Error("");
     setStep(2);
   };
 
@@ -212,17 +221,48 @@ function OnboardingPageContent() {
     }, 120);
   };
 
-  const handleSubmitBlueprint = (e: React.FormEvent) => {
+  const handleSubmitBlueprint = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (isSubmitting) return;
+    setStep3Error("");
 
-    const cityObj = selectedCity ?? {
-      cityName: cityQuery.trim(),
-      region: "Global",
-      lat: 40.7128,
-      lon: -74.006,
-      tzOffset: -5,
-    };
+    let cityObj = selectedCity;
+    if (!cityObj) {
+      const trimmedCity = cityQuery.trim();
+      if (trimmedCity.length < 2) {
+        setStep3Error(
+          "Please select a birth city from the dropdown before generating your Blueprint."
+        );
+        return;
+      }
 
+      setIsSubmitting(true);
+      try {
+        const res = await fetch(
+          `/api/location?q=${encodeURIComponent(trimmedCity)}`
+        );
+        if (res.ok) {
+          const data = (await res.json()) as { results?: LocationOption[] };
+          if (data.results && data.results.length > 0) {
+            cityObj = data.results[0];
+            setSelectedCity(cityObj);
+            setCityQuery(cityObj.cityName);
+          }
+        }
+      } catch {
+        // Handled below when cityObj remains null
+      }
+
+      if (!cityObj) {
+        setIsSubmitting(false);
+        setStep3Error(
+          "We couldn’t find that birth city. Please select a city from the Step 1 dropdown."
+        );
+        return;
+      }
+    }
+
+    setIsSubmitting(true);
     const firstNameOnly = fullName.trim().split(/\s+/)[0] || fullName.trim();
     const attribution = loadAttribution();
 
@@ -608,12 +648,32 @@ function OnboardingPageContent() {
               />
             </div>
 
+            {step3Error && (
+              <div className="mt-4 rounded-xl border border-[#F87171]/30 bg-[#F87171]/10 px-3.5 py-2.5 text-[13px] text-[#F87171]">
+                <p>{step3Error}</p>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setStep3Error("");
+                    setStep(1);
+                    setShowCityList(true);
+                  }}
+                  className="mt-1.5 text-[12px] font-semibold text-[#F5A65B] underline underline-offset-2 hover:text-[#FDF6EE] transition"
+                >
+                  Edit birth city in Step 1 &rarr;
+                </button>
+              </div>
+            )}
+
             <div className="mt-6">
               <button
                 type="submit"
-                className="inline-flex w-full items-center justify-center gap-2 rounded-full py-3.5 px-6 font-sans text-[15px] font-semibold text-[#0D0907] bg-gradient-to-r from-[#FF7E42] to-[#F5A65B] shadow-[0_8px_28px_-6px_rgba(255,107,43,0.5)] active:scale-[0.98] transition"
+                disabled={isSubmitting}
+                className="inline-flex w-full items-center justify-center gap-2 rounded-full py-3.5 px-6 font-sans text-[15px] font-semibold text-[#0D0907] bg-gradient-to-r from-[#FF7E42] to-[#F5A65B] shadow-[0_8px_28px_-6px_rgba(255,107,43,0.5)] active:scale-[0.98] transition disabled:opacity-60"
               >
-                <span>Generate My Blueprint</span>
+                <span>
+                  {isSubmitting ? "Verifying City..." : "Generate My Blueprint"}
+                </span>
                 <ArrowRight className="h-4 w-4" />
               </button>
             </div>

@@ -25,7 +25,6 @@ import {
   MARS_RETROGRADE_WINDOWS,
   MARS_TRANSITS,
   parseIsoUtc,
-  RASI_NAMES,
   RasiNumber,
   SATURN_TRANSITS,
   toRasiNumber,

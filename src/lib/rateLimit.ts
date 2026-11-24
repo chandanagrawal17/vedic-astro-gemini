@@ -5,7 +5,6 @@ interface BucketEntry {
 }
 
 declare global {
-  // eslint-disable-next-line no-var
   var __pbRateLimitBuckets: Map<string, BucketEntry> | undefined;
 }
 

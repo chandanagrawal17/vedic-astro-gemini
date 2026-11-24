@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { performBetaUnlock } from "@/lib/payments/betaUnlockService";
+import { enforceRateLimit } from "@/lib/rateLimit";
 import { BlueprintServiceError } from "@/lib/supabase/blueprintSession";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
@@ -15,6 +16,13 @@ export async function POST(
   req: NextRequest,
   context: { params: Promise<{ chartId: string }> }
 ) {
+  const rateLimited = enforceRateLimit(req, {
+    namespace: "beta_unlock",
+    limit: 10,
+    windowMs: 60 * 60 * 1000,
+  });
+  if (rateLimited) return rateLimited;
+
   try {
     const { chartId } = await context.params;
     if (!chartId || chartId === "demo-session") {

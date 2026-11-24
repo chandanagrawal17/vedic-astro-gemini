@@ -10,7 +10,10 @@ import {
   matchChartRules,
   RULE_MATCHER_VERSION,
 } from "@/lib/astro/ruleMatcher";
-import { BANNED_ASTROLOGY_REGEX } from "@/lib/llm/guardrails";
+import {
+  BANNED_ASTROLOGY_REGEX,
+  BANNED_FATALISTIC_REGEX,
+} from "@/lib/llm/guardrails";
 import {
   makeChandanExactChart,
   makeChartBundleResult,
@@ -30,12 +33,15 @@ test("knowledge rulebooks cover all 12 houses, expanded planet patterns, and cle
     assert.equal(cleanFocus.match(BANNED_ASTROLOGY_REGEX), null, `Banned term in house ${h} focus: ${cleanFocus}`);
   }
 
-  assert.ok(
-    housesRulebook.planet_in_house_patterns.length >= 40,
-    `Expected expanded planet_in_house_patterns, found ${housesRulebook.planet_in_house_patterns.length}`
+  assert.equal(
+    housesRulebook.planet_in_house_patterns.length,
+    108,
+    `Expected full 9x12=108 planet_in_house_patterns, found ${housesRulebook.planet_in_house_patterns.length}`
   );
 
+  const uniquePairs = new Set<string>();
   for (const p of housesRulebook.planet_in_house_patterns) {
+    uniquePairs.add(`${p.planet}::${p.house}`);
     for (const field of [p.trait, p.blind_spot, p.actionable_shift]) {
       const cleaned = cleanRuleText(field);
       assert.ok(cleaned.length > 15 && !cleaned.includes("[cite:"));
@@ -44,8 +50,14 @@ test("knowledge rulebooks cover all 12 houses, expanded planet patterns, and cle
         null,
         `Banned term in ${p.planet}@H${p.house}: ${cleaned}`
       );
+      assert.equal(
+        cleaned.match(BANNED_FATALISTIC_REGEX),
+        null,
+        `Fatalistic term in ${p.planet}@H${p.house}: ${cleaned}`
+      );
     }
   }
+  assert.equal(uniquePairs.size, 108, "Expected 108 unique (planet, house) pairs");
 
   for (const lord of ["Sun", "Moon", "Mars", "Mercury", "Jupiter", "Venus", "Saturn", "Rahu", "Ketu"] as const) {
     const theme = timingRulebook.period_lord_themes[lord];
