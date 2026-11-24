@@ -17,6 +17,41 @@ import {
 } from "@/lib/mock/blueprintMock";
 
 const STORAGE_KEY = "personal_blueprint_session_v1";
+const KARMA_SUB_STORAGE_PREFIX = "personal_blueprint_karma_sub_v1_";
+
+function karmaSubKey(chartId?: string, sessionId?: string): string {
+  return `${KARMA_SUB_STORAGE_PREFIX}${chartId || sessionId || "demo-session"}`;
+}
+
+function readPersistedKarmaSubscription(
+  chartId?: string,
+  sessionId?: string
+): boolean {
+  if (typeof window === "undefined") return false;
+  try {
+    return (
+      window.localStorage.getItem(karmaSubKey(chartId, sessionId)) === "true"
+    );
+  } catch {
+    return false;
+  }
+}
+
+function writePersistedKarmaSubscription(
+  active: boolean,
+  chartId?: string,
+  sessionId?: string
+): void {
+  if (typeof window === "undefined") return;
+  try {
+    window.localStorage.setItem(
+      karmaSubKey(chartId, sessionId),
+      active ? "true" : "false"
+    );
+  } catch {
+    // Ignore storage quota errors
+  }
+}
 
 function generateClientSessionToken(): string {
   if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
@@ -48,6 +83,7 @@ export function saveSynthesizedSession(
     paidPayload?: BlueprintPaidPayload | null;
     isUnlocked?: boolean;
     unlockTier?: "one_time_19" | "annual_39" | null;
+    karmaSubscriptionActive?: boolean;
     unlockSource?: UnlockSource | null;
     unlockedAt?: string | null;
     entryHook?: EntryHook | null;
@@ -97,6 +133,16 @@ export function saveSynthesizedSession(
       payload.unlockTier !== undefined
         ? payload.unlockTier
         : existing?.unlockTier ?? null,
+    karmaSubscriptionActive:
+      payload.karmaSubscriptionActive !== undefined
+        ? payload.karmaSubscriptionActive
+        : (payload.unlockTier ?? existing?.unlockTier) === "annual_39"
+          ? true
+          : existing?.karmaSubscriptionActive ??
+            readPersistedKarmaSubscription(
+              payload.chartId ?? existing?.chartId,
+              payload.sessionId
+            ),
     unlockSource:
       payload.unlockSource !== undefined
         ? payload.unlockSource
@@ -209,10 +255,28 @@ export function unlockSession(
   tier: "one_time_19" | "annual_39"
 ): BlueprintSession {
   const current = loadSession();
+  const isForecastTier = tier === "annual_39";
+  if (isForecastTier) {
+    writePersistedKarmaSubscription(true, current.chartId, current.sessionId);
+  }
   const updated: BlueprintSession = {
     ...current,
     isUnlocked: true,
     unlockTier: tier,
+    karmaSubscriptionActive: isForecastTier
+      ? true
+      : current.karmaSubscriptionActive,
+  };
+  saveSession(updated);
+  return updated;
+}
+
+export function updateKarmaSubscription(active: boolean): BlueprintSession {
+  const current = loadSession();
+  writePersistedKarmaSubscription(active, current.chartId, current.sessionId);
+  const updated: BlueprintSession = {
+    ...current,
+    karmaSubscriptionActive: active,
   };
   saveSession(updated);
   return updated;

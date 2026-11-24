@@ -18,6 +18,7 @@ import { SolarOrbHero } from "@/components/ui/SolarOrbHero";
 import { BragCardModal } from "@/components/blueprint/BragCardModal";
 import { CareerPaidSection } from "@/components/blueprint/CareerSections";
 import { DailyCommandCenter } from "@/components/blueprint/DailyCommandCenter";
+import { KarmaForecastSection } from "@/components/blueprint/KarmaForecastSection";
 import { LifeChaptersArc } from "@/components/blueprint/LifeChaptersArc";
 import { RelationshipPaidSection } from "@/components/blueprint/RelationshipSections";
 import { SynergyInviteCard } from "@/components/synergy/SynergyInviteCard";
@@ -42,6 +43,7 @@ import {
   loadSession,
   loadStoredSession,
   saveSynthesizedSession,
+  updateKarmaSubscription,
   updateSessionBookmarks,
 } from "@/lib/store/sessionStore";
 import { buildMockBlueprint, DEFAULT_ONBOARDING_INPUT } from "@/lib/mock/blueprintMock";
@@ -53,7 +55,7 @@ const TABS: { id: HubTab; label: string; hookKey: HookKey }[] = [
   { id: "eras", label: "Eras", hookKey: "eras" },
   { id: "career", label: "Career", hookKey: "career" },
   { id: "love", label: "Love", hookKey: "relationship" },
-  { id: "blind_spot", label: "Blind Spot", hookKey: "self_sabotage" },
+  { id: "blind_spot", label: "Karma", hookKey: "self_sabotage" },
 ];
 
 interface BlueprintApiResponse {
@@ -673,14 +675,14 @@ function BlueprintHubContent() {
           </div>
         )}
 
-        {/* TAB 5: BLIND SPOT */}
+        {/* TAB 4: KARMA (Self-Sabotage Loop + $5.99/mo Next 12 Months Forecast) */}
         {activeTab === "blind_spot" && (
           <div className="mt-5 space-y-4">
             <ObsidianCard warmTint>
               <div className="flex items-center gap-2">
                 <ShieldAlert className="h-4 w-4 text-[#F59E0B]" />
                 <span className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[#F59E0B]">
-                  #1 Self-Sabotage Loop
+                  Karma · #1 Self-Sabotage Loop
                 </span>
               </div>
 
@@ -733,6 +735,23 @@ function BlueprintHubContent() {
                 ))}
               </ol>
             </ObsidianCard>
+
+            <KarmaForecastSection
+              paidCareer={paidPayload.career}
+              paidRelationship={paidPayload.relationship}
+              isSubscribed={
+                Boolean(session.karmaSubscriptionActive) ||
+                session.unlockTier === "annual_39"
+              }
+              chartId={session.chartId}
+              sessionToken={session.sessionToken ?? session.sessionId}
+              email={input.email}
+              entryHook={session.entryHook ?? input.entryHook ?? null}
+              onToggleSubscription={(active) => {
+                const updated = updateKarmaSubscription(active);
+                setSession(updated);
+              }}
+            />
           </div>
         )}
 

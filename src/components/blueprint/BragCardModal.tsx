@@ -208,7 +208,7 @@ export function BragCardModal({
                     : "text-[#B8A99E]"
                 }`}
               >
-                Blind Spot Loop
+                Karma Loop
               </button>
             </div>
           )}

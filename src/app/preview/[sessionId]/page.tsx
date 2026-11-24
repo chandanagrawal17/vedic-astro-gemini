@@ -595,7 +595,7 @@ export default function PreviewSessionPage() {
             onClick={() => goToStep(2)}
             className="inline-flex w-full items-center justify-center gap-2 rounded-full py-3.5 px-6 font-sans text-[15px] font-semibold text-[#0D0907] bg-gradient-to-r from-[#FF7E42] to-[#F5A65B] shadow-[0_8px_28px_-6px_rgba(255,107,43,0.5)] active:scale-[0.98] transition"
           >
-            <span>See Your Blind Spot &amp; Alignment</span>
+            <span>See Your Karma &amp; Alignment</span>
             <ArrowRight className="h-4 w-4" />
           </button>
         ) : (

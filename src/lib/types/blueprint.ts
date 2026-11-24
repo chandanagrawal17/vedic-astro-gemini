@@ -292,6 +292,7 @@ export interface BlueprintSession {
   savedAlternativeLanes?: string[];
   isUnlocked: boolean;
   unlockTier: "one_time_19" | "annual_39" | null;
+  karmaSubscriptionActive?: boolean;
   unlockSource?: UnlockSource | null;
   unlockedAt?: string | null;
   entryHook?: EntryHook | null;

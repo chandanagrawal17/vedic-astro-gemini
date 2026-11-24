@@ -34,9 +34,9 @@ import {
 
 const REPORT_CHECKLIST = [
   "Tight 1-to-3-Month Hard Reset Timeline — exact peak pressure months across your last 10+ years + your exact upcoming prep months",
-  "Full Career Guide — 3-path fit scores (9–5 vs. Solo vs. Side Build), field audit, hidden alternative lanes & next 12 months",
+  "Full Career Guide — 3-path fit scores (9–5 vs. Solo vs. Side Build), field audit & hidden alternative lanes",
   "Relationship Alignment, Silent Friction Pattern & 2 Practical Communication Shifts",
-  "Self-Sabotage Trigger Map & 3-Step Grounded Antidote",
+  "Karma Self-Sabotage Trigger Map & 3-Step Grounded Antidote",
   "Era 3 Current Playbook & Era 4 Preview",
 ];
 
@@ -158,7 +158,7 @@ export function UnlockPaywallClient({
       dedupeKey: `paywall_cta_${session?.chartId ?? session?.sessionId ?? "demo"}`,
       metadata: {
         selected_tier: selectedTier,
-        price_shown: selectedTier === "one_time_19" ? 19 : 39,
+        price_shown: selectedTier === "one_time_19" ? 9.99 : 5.99,
       },
     });
     setBetaModalOpen(true);
@@ -291,7 +291,7 @@ export function UnlockPaywallClient({
 
         {/* Pricing Cards */}
         <div className="mt-5 space-y-3">
-          {/* $19 One-Time Unlock */}
+          {/* $9.99 One-Time Unlock */}
           <button
             type="button"
             onClick={() => setSelectedTier("one_time_19")}
@@ -311,19 +311,19 @@ export function UnlockPaywallClient({
                   Full Blueprint Unlock
                 </h2>
                 <p className="mt-0.5 text-[12px] text-[#B8A99E]">
-                  Pay once · Lifetime access to all 5 modules
+                  Pay once · Lifetime access to all 5 core modules
                 </p>
               </div>
               <div className="text-right">
                 <span className="font-serif text-[32px] leading-none font-semibold text-[#FDF6EE]">
-                  $19
+                  $9.99
                 </span>
                 <div className="text-[11px] text-[#8E7F75]">one-time</div>
               </div>
             </div>
           </button>
 
-          {/* $39/yr Blueprint Pass */}
+          {/* $5.99/mo Karma 12-Month Forecast Pass */}
           <button
             type="button"
             onClick={() => setSelectedTier("annual_39")}
@@ -336,17 +336,17 @@ export function UnlockPaywallClient({
             <div className="flex items-baseline justify-between">
               <div>
                 <h2 className="font-serif text-[22px] text-[#FDF6EE]">
-                  Blueprint Pass
+                  Blueprint + Karma Forecast
                 </h2>
                 <p className="mt-0.5 text-[12px] text-[#B8A99E]">
-                  Unlimited chart refreshes + early access to v2 live tools
+                  Includes Your Next 12 Months (Career &amp; Love windows) in Karma
                 </p>
               </div>
               <div className="text-right">
                 <span className="font-serif text-[32px] leading-none font-semibold text-[#FDF6EE]">
-                  $39
+                  $5.99
                 </span>
-                <div className="text-[11px] text-[#8E7F75]">per year</div>
+                <div className="text-[11px] text-[#8E7F75]">per month</div>
               </div>
             </div>
           </button>
@@ -362,14 +362,18 @@ export function UnlockPaywallClient({
             <Lock className="h-4 w-4" />
             <span>
               {selectedTier === "one_time_19"
-                ? "Unlock Full Blueprint — $19"
-                : "Unlock Full Blueprint — $39/yr"}
+                ? "Unlock Full Blueprint — $9.99"
+                : "Unlock Blueprint + Forecast — $5.99/mo"}
             </span>
           </button>
 
           <div className="mt-3 flex items-center justify-center gap-1.5 text-[12px] text-[#8E7F75]">
             <ShieldCheck className="h-4 w-4 text-[#F5A65B]" />
-            <span>Instant access · 100% private · One-time payment</span>
+            <span>
+              {selectedTier === "one_time_19"
+                ? "Instant access · 100% private · One-time payment"
+                : "Instant access · 100% private · Cancel anytime"}
+            </span>
           </div>
         </div>
       </div>
@@ -393,7 +397,9 @@ export function UnlockPaywallClient({
             </div>
 
             <h3 className="mt-3 font-serif text-[26px] leading-tight text-[#FDF6EE]">
-              You&rsquo;re in the Early Beta — Yours Free ($0 instead of $19)
+              {selectedTier === "one_time_19"
+                ? "You’re in the Early Beta — Yours Free ($0 instead of $9.99)"
+                : "You’re in the Early Beta — Yours Free ($0 instead of $5.99/mo)"}
             </h3>
 
             <p className="mt-2.5 text-[14px] leading-relaxed text-[#B8A99E]">
