@@ -21,6 +21,7 @@ import { DailyCommandCenter } from "@/components/blueprint/DailyCommandCenter";
 import { HardResetPaidSection } from "@/components/blueprint/HardResetSections";
 import { LifeChaptersArc } from "@/components/blueprint/LifeChaptersArc";
 import { RelationshipPaidSection } from "@/components/blueprint/RelationshipSections";
+import { SynergyInviteCard } from "@/components/synergy/SynergyInviteCard";
 import {
   normalizeFreePayloadForUi,
   normalizePaidPayloadForUi,
@@ -653,9 +654,9 @@ function BlueprintHubContent() {
           </div>
         )}
 
-        {/* TAB 4: LOVE (Full Single-Branch Relationship Guide) */}
+        {/* TAB 4: LOVE (Full Single-Branch Relationship Guide + Shareable Synergy Link) */}
         {activeTab === "love" && (
-          <div className="mt-5">
+          <div className="mt-5 space-y-4">
             <RelationshipPaidSection
               paidRelationship={paidPayload.relationship}
               switchingStatus={switchingRelStatus}
@@ -663,6 +664,10 @@ function BlueprintHubContent() {
               onSelectStatus={(nextStatus) =>
                 void handleChangeRelationshipStatus(nextStatus)
               }
+            />
+            <SynergyInviteCard
+              chartId={session.chartId}
+              sessionToken={session.sessionToken ?? session.sessionId}
             />
           </div>
         )}

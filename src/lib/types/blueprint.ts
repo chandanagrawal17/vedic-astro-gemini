@@ -71,7 +71,80 @@ export type FunnelEventName =
   | "daily_memory_tagged"
   | "somatic_reset_completed"
   | "text_or_wait_checked"
-  | "focus_calendar_audited";
+  | "focus_calendar_audited"
+  | "synergy_link_created"
+  | "synergy_invite_viewed"
+  | "synergy_compared";
+
+export type SynergyRelationshipContext =
+  | "romantic"
+  | "close_friend"
+  | "creative_partner";
+
+export type SynergyDimensionKey =
+  | "nervousSystemPacing"
+  | "domesticFlow"
+  | "mentalFriendship"
+  | "dailyRhythm"
+  | "physicalRapport"
+  | "sharedValues"
+  | "stressTemperament"
+  | "mutualInfluence";
+
+export type SynergyDimensionTone = "aligned" | "moderate" | "growth";
+
+export interface SynergyDimensionScore {
+  key: SynergyDimensionKey;
+  label: string;
+  earned: number;
+  max: number;
+  tone: SynergyDimensionTone;
+  summary: string;
+}
+
+export interface SynergyComparisonPayload {
+  engineVersion: string;
+  relationshipContext: SynergyRelationshipContext;
+  precisionBadge: {
+    mode: PrecisionMode;
+    label: string;
+    note: string;
+  };
+  participants: {
+    ownerFirstName: string;
+    partnerFirstName: string;
+  };
+  overallScore: number;
+  rawPoints: {
+    earned: number;
+    max: number;
+  };
+  headline: string;
+  coreLenses: {
+    attractionAndChemistry: {
+      label: string;
+      score: number;
+      insight: string;
+    };
+    innerBondAndDurability: {
+      label: string;
+      score: number;
+      insight: string;
+    };
+  };
+  participantStyles: {
+    ownerSummary: string;
+    partnerSummary: string;
+    sharedAnchor: string;
+  };
+  dimensions: SynergyDimensionScore[];
+  frictionAndAgency: {
+    title: string;
+    growthEdgeNote: string;
+    driveHeatActive: boolean;
+    tenSecondRepair: string;
+  };
+}
 
 export type DailyToneStatus = "GREEN" | "YELLOW" | "RED";
 export type DailyMemoryTag =

@@ -33,6 +33,9 @@ export const FUNNEL_EVENT_VALUES = [
   "somatic_reset_completed",
   "text_or_wait_checked",
   "focus_calendar_audited",
+  "synergy_link_created",
+  "synergy_invite_viewed",
+  "synergy_compared",
 ] as const;
 
 export const EntryHookSchema = z.enum(ENTRY_HOOK_VALUES);
