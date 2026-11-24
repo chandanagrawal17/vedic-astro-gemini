@@ -18,7 +18,6 @@ import { SolarOrbHero } from "@/components/ui/SolarOrbHero";
 import { BragCardModal } from "@/components/blueprint/BragCardModal";
 import { CareerPaidSection } from "@/components/blueprint/CareerSections";
 import { DailyCommandCenter } from "@/components/blueprint/DailyCommandCenter";
-import { KarmaForecastSection } from "@/components/blueprint/KarmaForecastSection";
 import { LifeChaptersArc } from "@/components/blueprint/LifeChaptersArc";
 import { RelationshipPaidSection } from "@/components/blueprint/RelationshipSections";
 import { SynergyInviteCard } from "@/components/synergy/SynergyInviteCard";
@@ -645,7 +644,7 @@ function BlueprintHubContent() {
           </div>
         )}
 
-        {/* TAB 3: CAREER (Full Career Guide) */}
+        {/* TAB 2: CAREER (Full Career Guide + $5.99/mo Next 12 Months) */}
         {activeTab === "career" && (
           <div className="mt-5">
             <CareerPaidSection
@@ -653,11 +652,26 @@ function BlueprintHubContent() {
               paidCareer={paidPayload.career}
               savedAlternativeLanes={session.savedAlternativeLanes ?? []}
               onToggleLane={handleToggleAlternativeLane}
+              isForecastSubscribed={
+                Boolean(session.karmaSubscriptionActive) ||
+                session.unlockTier === "annual_39"
+              }
+              loveWindowsCount={
+                paidPayload.relationship.next12Months.tightMonthlyWindows.length
+              }
+              chartId={session.chartId}
+              sessionToken={session.sessionToken ?? session.sessionId}
+              email={input.email}
+              entryHook={session.entryHook ?? input.entryHook ?? null}
+              onToggleForecastSubscription={(active) => {
+                const updated = updateKarmaSubscription(active);
+                setSession(updated);
+              }}
             />
           </div>
         )}
 
-        {/* TAB 4: LOVE (Full Single-Branch Relationship Guide + Shareable Synergy Link) */}
+        {/* TAB 3: LOVE (Full Single-Branch Relationship Guide + $5.99/mo Next 12 Months + Shareable Synergy Link) */}
         {activeTab === "love" && (
           <div className="mt-5 space-y-4">
             <RelationshipPaidSection
@@ -667,6 +681,21 @@ function BlueprintHubContent() {
               onSelectStatus={(nextStatus) =>
                 void handleChangeRelationshipStatus(nextStatus)
               }
+              isForecastSubscribed={
+                Boolean(session.karmaSubscriptionActive) ||
+                session.unlockTier === "annual_39"
+              }
+              careerWindowsCount={
+                paidPayload.career.next12Months.tightMonthlyWindows.length
+              }
+              chartId={session.chartId}
+              sessionToken={session.sessionToken ?? session.sessionId}
+              email={input.email}
+              entryHook={session.entryHook ?? input.entryHook ?? null}
+              onToggleForecastSubscription={(active) => {
+                const updated = updateKarmaSubscription(active);
+                setSession(updated);
+              }}
             />
             <SynergyInviteCard
               chartId={session.chartId}
@@ -675,7 +704,7 @@ function BlueprintHubContent() {
           </div>
         )}
 
-        {/* TAB 4: KARMA (Self-Sabotage Loop + $5.99/mo Next 12 Months Forecast) */}
+        {/* TAB 4: KARMA (Self-Sabotage Loop & Practical Antidote) */}
         {activeTab === "blind_spot" && (
           <div className="mt-5 space-y-4">
             <ObsidianCard warmTint>
@@ -735,23 +764,6 @@ function BlueprintHubContent() {
                 ))}
               </ol>
             </ObsidianCard>
-
-            <KarmaForecastSection
-              paidCareer={paidPayload.career}
-              paidRelationship={paidPayload.relationship}
-              isSubscribed={
-                Boolean(session.karmaSubscriptionActive) ||
-                session.unlockTier === "annual_39"
-              }
-              chartId={session.chartId}
-              sessionToken={session.sessionToken ?? session.sessionId}
-              email={input.email}
-              entryHook={session.entryHook ?? input.entryHook ?? null}
-              onToggleSubscription={(active) => {
-                const updated = updateKarmaSubscription(active);
-                setSession(updated);
-              }}
-            />
           </div>
         )}
 

@@ -4,18 +4,22 @@ import React from "react";
 import {
   Bookmark,
   Briefcase,
+  CalendarClock,
   Compass,
   Eye,
+  HeartPulse,
   Lock,
   Sparkles,
   Wallet,
 } from "lucide-react";
 import { ObsidianCard } from "@/components/ui/ObsidianCard";
 import { AlignmentMeter } from "@/components/blueprint/AlignmentMeter";
+import { ForecastSubscriptionCard } from "@/components/blueprint/ForecastSubscriptionCard";
 import type {
   CareerDeepDivePayload,
   CareerProofPayload,
 } from "@/lib/llm/blueprintSchema";
+import type { EntryHook } from "@/lib/types/blueprint";
 
 interface CareerFreeSectionProps {
   career: CareerProofPayload;
@@ -160,6 +164,13 @@ interface CareerPaidSectionProps {
   paidCareer: CareerDeepDivePayload;
   savedAlternativeLanes: string[];
   onToggleLane: (laneId: string) => void;
+  isForecastSubscribed?: boolean;
+  loveWindowsCount?: number;
+  chartId?: string;
+  sessionToken?: string;
+  email?: string;
+  entryHook?: EntryHook | null;
+  onToggleForecastSubscription?: (active: boolean) => void;
 }
 
 export function CareerPaidSection({
@@ -167,6 +178,13 @@ export function CareerPaidSection({
   paidCareer,
   savedAlternativeLanes,
   onToggleLane,
+  isForecastSubscribed = false,
+  loveWindowsCount,
+  chartId,
+  sessionToken,
+  email,
+  entryHook,
+  onToggleForecastSubscription,
 }: CareerPaidSectionProps) {
   return (
     <div className="space-y-4">
@@ -384,6 +402,84 @@ export function CareerPaidSection({
           </div>
         </div>
       </ObsidianCard>
+
+      {/* 6. Your Next 12 Months ($5.99/mo Subscription Gate) */}
+      {isForecastSubscribed ? (
+        <ObsidianCard warmTint>
+          <div className="flex items-center justify-between gap-2">
+            <div className="flex items-center gap-2">
+              <CalendarClock className="h-4 w-4 text-[#FF6B2B]" />
+              <span className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[#F5A65B]">
+                Your Next 12 Months
+              </span>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="rounded-full border border-[#4ADE80]/40 bg-[#4ADE80]/15 px-2 py-0.5 text-[10px] font-semibold text-[#4ADE80]">
+                Active · $5.99/mo
+              </span>
+              {onToggleForecastSubscription && (
+                <button
+                  type="button"
+                  onClick={() => onToggleForecastSubscription(false)}
+                  className="text-[10.5px] text-[#8E7F75] underline decoration-[#8E7F75]/40 underline-offset-2 hover:text-[#FDF6EE] transition"
+                >
+                  Preview Locked
+                </button>
+              )}
+            </div>
+          </div>
+
+          <p className="mt-2.5 text-[14.5px] leading-relaxed text-[#FDF6EE]">
+            {paidCareer.next12Months.bigPictureSummary}
+          </p>
+
+          {paidCareer.next12Months.tightMonthlyWindows.length > 0 && (
+            <div className="mt-3.5 space-y-2.5">
+              {paidCareer.next12Months.tightMonthlyWindows.map((win) => (
+                <div
+                  key={win.id}
+                  className="rounded-2xl border border-[#FF6B2B]/25 bg-[#120C09]/85 p-3.5"
+                >
+                  <span className="inline-block rounded-full border border-[#FF6B2B]/40 bg-[#FF6B2B]/15 px-2.5 py-0.5 text-[11px] font-semibold text-[#F5A65B]">
+                    {win.monthRange}
+                  </span>
+                  <h4 className="mt-1.5 text-[15px] font-semibold text-[#FDF6EE]">
+                    {win.windowTitle}
+                  </h4>
+                  <p className="mt-1 text-[13.5px] leading-relaxed text-[#D9CEC5]">
+                    {win.practicalGuidance}
+                  </p>
+                </div>
+              ))}
+            </div>
+          )}
+
+          <div className="mt-3.5 flex items-start gap-2.5 rounded-xl border border-[#F5A65B]/20 bg-[#120C09]/80 p-3.5">
+            <HeartPulse className="mt-0.5 h-4 w-4 shrink-0 text-[#F5A65B]" />
+            <div>
+              <div className="text-[10.5px] font-semibold uppercase tracking-[0.12em] text-[#F5A65B]">
+                Mind-Body Pacing Tip
+              </div>
+              <p className="mt-1 text-[13px] leading-relaxed text-[#D9CEC5]">
+                {paidCareer.next12Months.mindBodyPacingTip}
+              </p>
+            </div>
+          </div>
+        </ObsidianCard>
+      ) : (
+        <ForecastSubscriptionCard
+          heading="Your Next 12 Months"
+          domainLabel="Career"
+          windowsCount={paidCareer.next12Months.tightMonthlyWindows.length}
+          careerWindowsCount={paidCareer.next12Months.tightMonthlyWindows.length}
+          loveWindowsCount={loveWindowsCount}
+          chartId={chartId}
+          sessionToken={sessionToken}
+          email={email}
+          entryHook={entryHook}
+          onActivateSubscription={() => onToggleForecastSubscription?.(true)}
+        />
+      )}
     </div>
   );
 }

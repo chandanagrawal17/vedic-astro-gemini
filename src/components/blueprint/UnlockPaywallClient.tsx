@@ -336,10 +336,10 @@ export function UnlockPaywallClient({
             <div className="flex items-baseline justify-between">
               <div>
                 <h2 className="font-serif text-[22px] text-[#FDF6EE]">
-                  Blueprint + Karma Forecast
+                  Blueprint + 12-Month Forecast
                 </h2>
                 <p className="mt-0.5 text-[12px] text-[#B8A99E]">
-                  Includes Your Next 12 Months (Career &amp; Love windows) in Karma
+                  Includes Your Next 12 Months windows in Career &amp; Love
                 </p>
               </div>
               <div className="text-right">
