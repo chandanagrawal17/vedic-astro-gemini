@@ -28,6 +28,7 @@ export interface NormalizedLocation {
   lat: number;
   lon: number;
   tz: number;
+  timeZone?: string;
 }
 
 export interface ChartCalculationInput {

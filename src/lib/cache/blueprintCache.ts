@@ -96,6 +96,46 @@ function roundCoord(value: number): string {
   return safe.toFixed(3);
 }
 
+export const CITY_CENTROID_TOLERANCE_DEG = 0.25;
+
+export interface CanonicalBirthDetails {
+  dob: string;
+  tob: string | null;
+  precisionMode: AstroPrecisionMode;
+  lat: number;
+  lon: number;
+  tz: number;
+}
+
+export function isEquivalentBirthInput(
+  stored: {
+    dob: string;
+    tob: string | null;
+    precision_mode: AstroPrecisionMode;
+    lat: number;
+    lon: number;
+    tz: number;
+  },
+  incoming: CanonicalBirthDetails
+): boolean {
+  if (stored.dob !== incoming.dob) return false;
+  if (stored.precision_mode !== incoming.precisionMode) return false;
+  if (
+    stored.precision_mode !== "date_only" &&
+    (stored.tob ?? null) !== (incoming.tob ?? null)
+  ) {
+    return false;
+  }
+  if (Number(stored.tz) !== Number(incoming.tz)) return false;
+
+  return (
+    Math.abs(Number(stored.lat) - Number(incoming.lat)) <=
+      CITY_CENTROID_TOLERANCE_DEG &&
+    Math.abs(Number(stored.lon) - Number(incoming.lon)) <=
+      CITY_CENTROID_TOLERANCE_DEG
+  );
+}
+
 export function computeBirthInputHash(input: {
   dob: string;
   tob?: string | null;
@@ -242,6 +282,7 @@ export async function evaluateEmailCacheState(params: {
   email: string;
   birthInputHash: string;
   contextHash: string;
+  birthDetails?: CanonicalBirthDetails;
   authUserId?: string | null;
   authUserEmail?: string | null;
   sessionToken?: string | null;
@@ -303,7 +344,11 @@ export async function evaluateEmailCacheState(params: {
       tz: chart.tz,
     });
 
-  if (storedBirthHash !== params.birthInputHash) {
+  const isCentroidEquivalent = Boolean(
+    params.birthDetails && isEquivalentBirthInput(chart, params.birthDetails)
+  );
+
+  if (storedBirthHash !== params.birthInputHash && !isCentroidEquivalent) {
     return {
       status: "ready",
       cacheCase: "C",

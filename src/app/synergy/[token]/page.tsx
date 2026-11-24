@@ -140,7 +140,12 @@ export default function SynergyInvitePage({
     const timer = setTimeout(async () => {
       setSearchingCity(true);
       try {
-        const res = await fetch(`/api/location?q=${encodeURIComponent(q)}`);
+        const dobQuery = birthDate
+          ? `&dob=${encodeURIComponent(birthDate)}`
+          : "";
+        const res = await fetch(
+          `/api/location?q=${encodeURIComponent(q)}${dobQuery}`
+        );
         if (res.ok) {
           const data = (await res.json()) as { results?: LocationOption[] };
           if (data.results) {
@@ -164,7 +169,7 @@ export default function SynergyInvitePage({
     }, 250);
 
     return () => clearTimeout(timer);
-  }, [cityQuery, selectedCity]);
+  }, [cityQuery, selectedCity, birthDate]);
 
   const handleSubmitCompare = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -198,8 +203,11 @@ export default function SynergyInvitePage({
     let resolvedCity = selectedCity;
     if (!resolvedCity && cityQuery.trim().length >= 2) {
       try {
+        const dobQuery = birthDate
+          ? `&dob=${encodeURIComponent(birthDate)}`
+          : "";
         const res = await fetch(
-          `/api/location?q=${encodeURIComponent(cityQuery.trim())}`
+          `/api/location?q=${encodeURIComponent(cityQuery.trim())}${dobQuery}`
         );
         if (res.ok) {
           const data = (await res.json()) as { results?: LocationOption[] };
@@ -232,6 +240,9 @@ export default function SynergyInvitePage({
             birthLat: resolvedCity.lat,
             birthLon: resolvedCity.lon,
             birthTz: resolvedCity.tzOffset,
+            ...(resolvedCity.timeZone
+              ? { birthTimeZone: resolvedCity.timeZone }
+              : {}),
             precisionMode,
             birthTime: precisionMode === "exact" ? birthTime : null,
             birthWindow: precisionMode === "window" ? birthWindow : null,

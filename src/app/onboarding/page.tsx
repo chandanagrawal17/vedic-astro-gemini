@@ -145,8 +145,11 @@ function OnboardingPageContent() {
     const timer = setTimeout(async () => {
       setIsSearchingCity(true);
       try {
+        const dobQuery = birthDate
+          ? `&dob=${encodeURIComponent(birthDate)}`
+          : "";
         const res = await fetch(
-          `/api/location?q=${encodeURIComponent(q)}`
+          `/api/location?q=${encodeURIComponent(q)}${dobQuery}`
         );
         if (res.ok) {
           const data = (await res.json()) as { results?: LocationOption[] };
@@ -169,7 +172,7 @@ function OnboardingPageContent() {
     }, 250);
 
     return () => clearTimeout(timer);
-  }, [cityQuery]);
+  }, [cityQuery, birthDate]);
 
   const handleSelectCity = (city: LocationOption) => {
     setSelectedCity(city);
@@ -238,8 +241,11 @@ function OnboardingPageContent() {
 
       setIsSubmitting(true);
       try {
+        const dobQuery = birthDate
+          ? `&dob=${encodeURIComponent(birthDate)}`
+          : "";
         const res = await fetch(
-          `/api/location?q=${encodeURIComponent(trimmedCity)}`
+          `/api/location?q=${encodeURIComponent(trimmedCity)}${dobQuery}`
         );
         if (res.ok) {
           const data = (await res.json()) as { results?: LocationOption[] };
@@ -274,6 +280,7 @@ function OnboardingPageContent() {
       birthLat: cityObj.lat,
       birthLon: cityObj.lon,
       birthTz: cityObj.tzOffset,
+      ...(cityObj.timeZone ? { birthTimeZone: cityObj.timeZone } : {}),
       precisionMode,
       birthTime: precisionMode === "exact" ? birthTime : null,
       birthWindow: precisionMode === "window" ? birthWindow : null,

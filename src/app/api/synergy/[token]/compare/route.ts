@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { AstroProviderError } from "@/lib/astro/vedicAstroProvider";
+import { resolveHistoricalUtcOffsetHours } from "@/lib/location/timezoneOffset";
 import { enforceRateLimit } from "@/lib/rateLimit";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import {
@@ -22,6 +23,7 @@ const ComparePartnerSchema = z.object({
   birthLat: z.coerce.number().min(-90).max(90),
   birthLon: z.coerce.number().min(-180).max(180),
   birthTz: z.coerce.number().min(-12).max(14),
+  birthTimeZone: z.string().trim().max(80).optional(),
   precisionMode: z.enum([
     "exact",
     "window",
@@ -78,6 +80,13 @@ export async function POST(
       // Anonymous partner comparison
     }
 
+    const resolvedBirthTz =
+      resolveHistoricalUtcOffsetHours(
+        parsed.data.birthTimeZone,
+        parsed.data.birthDate,
+        parsed.data.birthTime
+      ) ?? parsed.data.birthTz;
+
     const result = await compareSynergyWithPartner({
       shareToken: token,
       firstName: parsed.data.firstName,
@@ -86,7 +95,7 @@ export async function POST(
       birthCity: parsed.data.birthCity,
       birthLat: parsed.data.birthLat,
       birthLon: parsed.data.birthLon,
-      birthTz: parsed.data.birthTz,
+      birthTz: resolvedBirthTz,
       precisionMode: parsed.data.precisionMode,
       birthTime: parsed.data.birthTime,
       birthWindow: parsed.data.birthWindow,

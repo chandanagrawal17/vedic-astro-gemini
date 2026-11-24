@@ -239,6 +239,7 @@ export interface LocationOption {
   lat: number;
   lon: number;
   tzOffset: number;
+  timeZone?: string;
 }
 
 export interface OnboardingInput {
@@ -249,6 +250,7 @@ export interface OnboardingInput {
   birthLat: number;
   birthLon: number;
   birthTz: number;
+  birthTimeZone?: string;
   precisionMode: PrecisionMode;
   birthTime: string | null; // HH:MM
   birthWindow: BirthWindow | null;

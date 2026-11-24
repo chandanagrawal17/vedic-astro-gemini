@@ -143,3 +143,86 @@ test("calculateAndPersistChart handles date_only (tob = null) caching and invali
     "Stale blueprint must be deleted when birth time is upgraded"
   );
 });
+
+test("calculateAndPersistChart preserves cache hits across city centroid shifts within 0.25 deg", async () => {
+  const db = new InMemorySupabaseAdmin();
+  const spy = makeSpyAstroProvider();
+
+  const cachedVedicCoords = {
+    email: "chandan@example.com",
+    firstName: "Chandan",
+    birthDate: "1989-09-17",
+    birthCity: "Muzaffarnagar, Uttar Pradesh",
+    birthLat: 29.45,
+    birthLon: 77.58333,
+    birthTz: 5.5,
+    precisionMode: "exact" as const,
+    birthTime: "10:15",
+    birthWindow: null,
+    relationshipStatus: "single" as const,
+    careerMode: "employed" as const,
+    careerField: "Engineering",
+  };
+
+  const first = await calculateAndPersistChart(
+    { ...cachedVedicCoords, sessionToken: "pb_centroid_1" },
+    { admin: db.asAdminClient(), astroProvider: spy.provider }
+  );
+  assert.equal(first.cached, false);
+  assert.equal(spy.getFetchCount(), 1);
+
+  db.tables.blueprints.push({
+    id: "bp-centroid-1",
+    chart_id: first.chartId,
+    session_token: "pb_centroid_1",
+    email: "chandan@example.com",
+    model_version: "gemini-3.1-flash-lite",
+    context_hash: first.cacheCase ? undefined : undefined,
+    hook_proof_json: { mock: true },
+    full_blueprint_json: { mock: true },
+    is_paid: false,
+  });
+
+  // Same email + GeoNames Muzaffarnagar centroid (29.4709, 77.7033) -> Cache Hit (Case A or B), 0 API calls
+  const sameEmailGeoNames = await calculateAndPersistChart(
+    {
+      ...cachedVedicCoords,
+      birthLat: 29.4709,
+      birthLon: 77.7033,
+      sessionToken: "pb_centroid_2",
+    },
+    { admin: db.asAdminClient(), astroProvider: spy.provider }
+  );
+  assert.equal(sameEmailGeoNames.cached, true);
+  assert.equal(sameEmailGeoNames.apiCallsMade, 0);
+  assert.equal(spy.getFetchCount(), 1);
+
+  // Different/no email + GeoNames centroid -> findExistingChart still hits cache within +-0.25 deg
+  const anonGeoNames = await calculateAndPersistChart(
+    {
+      ...cachedVedicCoords,
+      email: undefined,
+      birthLat: 29.4709,
+      birthLon: 77.7033,
+      sessionToken: "pb_centroid_3",
+    },
+    { admin: db.asAdminClient(), astroProvider: spy.provider }
+  );
+  assert.equal(anonGeoNames.cached, true);
+  assert.equal(anonGeoNames.apiCallsMade, 0);
+  assert.equal(spy.getFetchCount(), 1);
+
+  // Far-away coordinates (> 0.25 deg) still trigger Case C recalculation
+  const farCity = await calculateAndPersistChart(
+    {
+      ...cachedVedicCoords,
+      birthLat: 28.6139,
+      birthLon: 77.209,
+      sessionToken: "pb_centroid_4",
+    },
+    { admin: db.asAdminClient(), astroProvider: spy.provider }
+  );
+  assert.equal(farCity.cacheCase, "C");
+  assert.equal(farCity.cached, false);
+  assert.equal(spy.getFetchCount(), 2);
+});

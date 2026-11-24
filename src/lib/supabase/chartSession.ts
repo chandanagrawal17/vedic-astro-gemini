@@ -14,6 +14,7 @@ import {
 } from "@/lib/astro/vedicAstroProvider";
 import {
   BlueprintCacheRow,
+  CITY_CENTROID_TOLERANCE_DEG,
   computeBirthInputHash,
   computeContextHash,
   evaluateEmailCacheState,
@@ -163,10 +164,10 @@ async function findReusableChartByBirthCoords(
     .eq("dob", params.dobIso)
     .eq("precision_mode", params.astroPrecision)
     .eq("tz", params.birthTz)
-    .gte("lat", params.birthLat - 0.001)
-    .lte("lat", params.birthLat + 0.001)
-    .gte("lon", params.birthLon - 0.001)
-    .lte("lon", params.birthLon + 0.001);
+    .gte("lat", params.birthLat - CITY_CENTROID_TOLERANCE_DEG)
+    .lte("lat", params.birthLat + CITY_CENTROID_TOLERANCE_DEG)
+    .gte("lon", params.birthLon - CITY_CENTROID_TOLERANCE_DEG)
+    .lte("lon", params.birthLon + CITY_CENTROID_TOLERANCE_DEG);
 
   if (params.storedTob === null) {
     matchQuery = matchQuery.is("tob", null);
@@ -226,6 +227,14 @@ export async function calculateAndPersistChart(
         email: normalizedEmail,
         birthInputHash,
         contextHash,
+        birthDetails: {
+          dob: dobIso,
+          tob: storedTob,
+          precisionMode: astroPrecision,
+          lat: params.birthLat,
+          lon: params.birthLon,
+          tz: params.birthTz,
+        },
         authUserId: params.userId,
         authUserEmail: params.userEmail,
         sessionToken: requestedToken,
@@ -298,7 +307,7 @@ export async function calculateAndPersistChart(
         .from("natal_charts")
         .update({
           email: normalizedEmail,
-          birth_input_hash: birthInputHash,
+          birth_input_hash: existingChart.birth_input_hash ?? birthInputHash,
           first_name: params.firstName,
           relationship_status: params.relationshipStatus,
           career_mode: params.careerMode,

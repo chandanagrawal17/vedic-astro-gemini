@@ -3,6 +3,7 @@ import { z } from "zod";
 import { AstroProviderError } from "@/lib/astro/vedicAstroProvider";
 import { ExistingPaidAccountError } from "@/lib/cache/blueprintCache";
 import { EntryHookSchema, logFunnelEvent } from "@/lib/funnel/events";
+import { resolveHistoricalUtcOffsetHours } from "@/lib/location/timezoneOffset";
 import { enforceRateLimit } from "@/lib/rateLimit";
 import { calculateAndPersistChart } from "@/lib/supabase/chartSession";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
@@ -15,6 +16,7 @@ const CalculateChartSchema = z.object({
   birthLat: z.coerce.number().min(-90).max(90),
   birthLon: z.coerce.number().min(-180).max(180),
   birthTz: z.coerce.number().min(-12).max(14),
+  birthTimeZone: z.string().trim().max(80).optional(),
   precisionMode: z.enum([
     "exact",
     "window",
@@ -92,8 +94,16 @@ export async function POST(req: NextRequest) {
       // Anonymous onboarding session
     }
 
+    const resolvedBirthTz =
+      resolveHistoricalUtcOffsetHours(
+        parsed.data.birthTimeZone,
+        parsed.data.birthDate,
+        parsed.data.birthTime
+      ) ?? parsed.data.birthTz;
+
     const result = await calculateAndPersistChart({
       ...parsed.data,
+      birthTz: resolvedBirthTz,
       sessionToken,
       userId,
       userEmail,
