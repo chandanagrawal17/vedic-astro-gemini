@@ -146,8 +146,9 @@ export function assertDbError(error: { code?: string; message?: string } | null)
     error.code === "PGRST204" ||
     error.message?.includes("does not exist")
   ) {
+    const detail = error.message ? ` (${error.message})` : "";
     throw new BlueprintServiceError(
-      "Supabase schema out of date. Please run supabase/migrations/001–006 in your Supabase SQL Editor.",
+      `Supabase schema out of date. Please run supabase/migrations/001–010 (including 010_personal_nature_and_voice.sql) in your Supabase SQL Editor.${detail}`,
       500
     );
   }
@@ -476,6 +477,7 @@ export async function synthesizeAndPersistBlueprint(params: {
           ...profile,
           dobIso: chart.dob,
         },
+        admin,
       },
       params.llmProvider
     );
@@ -806,6 +808,7 @@ export async function updateRelationshipStatusAndResynthesize(params: {
         normalizedChart: chart.normalized_chart_json,
         firstName: existingProfile.firstName,
         relationshipStatus: canonicalStatus,
+        admin,
       },
       params.llmProvider
     );

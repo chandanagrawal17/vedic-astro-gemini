@@ -239,6 +239,9 @@ export class InMemorySupabaseAdmin {
     funnel_events: [],
     daily_checkins: [],
     decision_logs: [],
+    app_voice_profiles: [],
+    personal_nature_tells: [],
+    user_memory: [],
   };
 
   from(table: string) {

@@ -9,6 +9,11 @@
  */
 
 import type { CanonicalCareerMode } from "@/lib/astro/careerEngine";
+import {
+  buildMentorSystemPrompt,
+  type MentorPrecisionMode,
+  type VoiceProfile,
+} from "@/lib/llm/voiceProfile";
 
 export function buildCareerPromptSection(
   firstNamePlaceholder: string,
@@ -25,16 +30,16 @@ export function buildCareerPromptSection(
       : `CAREER MODE CONTEXT:
    - Adapt every sentence naturally to career_mode="${careerMode}" and stated field="${careerField || "their current work"}".`;
 
-  return `HOOK #3 — CAREER & BUSINESS ALIGNMENT (WARM MENTOR TWO-TIER WALL):
-You are a warm, honest, deeply experienced life and career mentor talking one-on-one with ${firstNamePlaceholder} over coffee.
+  return `HOOK #3 — CAREER & BUSINESS ALIGNMENT (ELDER-MENTOR TWO-TIER WALL):
+Speak like a wise, loving elder mentor sitting across the kitchen table with ${firstNamePlaceholder} over tea—proud of their work ethic while gently telling the truth about what actually fills their heart.
 Translate \`careerTelemetry\` into TWO strictly separated tiers:
 1. \`hook_proof_json.career\` (FREE TIER): Warm, uncannily accurate mirror of their current fit, natural strength, quiet emptiness/shift, and how work sees them—WITHOUT revealing the 3 individual path scores or any future month names.
 2. \`full_blueprint_json.career\` (PAID TIER): Complete, decision-ready Career Guide unlocking the 3 path scores, Field Audit, 3–5 Hidden Alternative Lanes, Perception Shift, Money & Leaks, and exact 1-to-3-month timing windows for the next 12 months.
 
 STRICT CAREER RULES (NON-NEGOTIABLE):
-1. WARM, EVERYDAY MENTOR VOICE (ZERO CORPORATE BUZZWORDS):
+1. WARM KITCHEN-TABLE MENTOR VOICE (ZERO CORPORATE OR ROBOTIC BUZZWORDS):
    - Use natural contractions ("you're", "don't", "it's", "that's") and plain, human words.
-   - STRICTLY FORBIDDEN CORPORATE / CONSULTANT JARGON: Never write "synergy", "synergistic", "operational footprint", "surgical diagnostic", "deliverables", "value proposition", "paradigm", "tactical posture", "stakeholder alignment", "scalable ecosystem", "maximize upside", "deep transformation", or "tested your resilience".
+   - STRICTLY FORBIDDEN CORPORATE / ROBOTIC JARGON: Never write "synergy", "synergistic", "bandwidth", "pipeline", "framework", "leverage point", "tactical stance", "executive state", "operational footprint", "surgical diagnostic", "deliverables", "value proposition", "paradigm", "tactical posture", "stakeholder alignment", "scalable ecosystem", "maximize upside", "deep transformation", or "tested your resilience".
    - Say "putting out fires" instead of "operational firefighting". Say "building something that's actually yours" instead of "achieving entrepreneurial ownership". Say "stay cool and get it in writing" instead of "adopt a defensive documentation posture".
 
 2. STRICT TWO-TIER MONETIZATION WALL:
@@ -50,4 +55,22 @@ STRICT CAREER RULES (NON-NEGOTIABLE):
      - \`next12Months.tightMonthlyWindows\` MUST copy EVERY \`id\` and \`monthRange\` VERBATIM from \`careerTelemetry.forward_12m_timing.upcoming_windows\`. Never invent, round, or widen month ranges.
 
 3. ${modeEmpathyNote}`;
+}
+
+export function buildCareerMentorSystemPrompt(params: {
+  firstNamePlaceholder: string;
+  careerMode: CanonicalCareerMode;
+  careerField: string;
+  precisionMode: MentorPrecisionMode;
+  voiceProfile?: VoiceProfile;
+}): string {
+  return buildMentorSystemPrompt({
+    voiceProfile: params.voiceProfile,
+    precisionMode: params.precisionMode,
+    moduleInstructions: buildCareerPromptSection(
+      params.firstNamePlaceholder,
+      params.careerMode,
+      params.careerField
+    ),
+  });
 }

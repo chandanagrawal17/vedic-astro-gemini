@@ -19,6 +19,7 @@ import { BragCardModal } from "@/components/blueprint/BragCardModal";
 import { CareerPaidSection } from "@/components/blueprint/CareerSections";
 import { DailyCommandCenter } from "@/components/blueprint/DailyCommandCenter";
 import { LifeChaptersArc } from "@/components/blueprint/LifeChaptersArc";
+import { PersonalNatureSection } from "@/components/blueprint/PersonalNatureSection";
 import { RelationshipPaidSection } from "@/components/blueprint/RelationshipSections";
 import { SynergyInviteCard } from "@/components/synergy/SynergyInviteCard";
 import {
@@ -47,10 +48,17 @@ import {
 } from "@/lib/store/sessionStore";
 import { buildMockBlueprint, DEFAULT_ONBOARDING_INPUT } from "@/lib/mock/blueprintMock";
 
-type HubTab = "today" | "eras" | "career" | "love" | "blind_spot";
+type HubTab =
+  | "today"
+  | "personal_nature"
+  | "eras"
+  | "career"
+  | "love"
+  | "blind_spot";
 
 const TABS: { id: HubTab; label: string; hookKey: HookKey }[] = [
   { id: "today", label: "Today", hookKey: "hard_reset" },
+  { id: "personal_nature", label: "Personal", hookKey: "self_sabotage" },
   { id: "eras", label: "Eras", hookKey: "eras" },
   { id: "career", label: "Career", hookKey: "career" },
   { id: "love", label: "Love", hookKey: "relationship" },
@@ -108,11 +116,23 @@ function BlueprintHubContent() {
   const searchParams = useSearchParams();
   const queryTargetId =
     searchParams.get("session") || searchParams.get("chartId");
+  const requestedTab = searchParams.get("tab");
+  const initialTab: HubTab =
+    requestedTab === "personal" ||
+    requestedTab === "personal_nature" ||
+    requestedTab === "personal-nature"
+      ? "personal_nature"
+      : requestedTab === "eras" ||
+          requestedTab === "career" ||
+          requestedTab === "love" ||
+          requestedTab === "blind_spot"
+        ? requestedTab
+        : "today";
 
   const [session, setSession] = useState<BlueprintSession | null>(null);
   const [loading, setLoading] = useState(true);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<HubTab>("today");
+  const [activeTab, setActiveTab] = useState<HubTab>(initialTab);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [noteInput, setNoteInput] = useState("");
   const [showTimeModal, setShowTimeModal] = useState(false);
@@ -562,6 +582,19 @@ function BlueprintHubContent() {
               chartId={session.chartId}
               sessionToken={session.sessionToken ?? session.sessionId}
               firstName={input.firstName}
+            />
+          </div>
+        )}
+
+        {/* TAB 0.5: PERSONAL NATURE (4 Categories · 18 Drip Tells · Elder-Mentor Mirror) */}
+        {activeTab === "personal_nature" && (
+          <div className="mt-5">
+            <PersonalNatureSection
+              chartId={session.chartId}
+              sessionToken={session.sessionToken ?? session.sessionId}
+              firstName={input.firstName}
+              precisionMode={input.precisionMode}
+              onOpenBirthTimeModal={() => setShowTimeModal(true)}
             />
           </div>
         )}

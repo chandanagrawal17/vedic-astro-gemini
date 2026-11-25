@@ -1,6 +1,9 @@
+@import url("https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap");
 @import "tailwindcss";
 
 :root {
+  --font-serif-stack: "Cormorant Garamond", Georgia, serif;
+  --font-sans-stack: "Plus Jakarta Sans", -apple-system, BlinkMacSystemFont, sans-serif;
   /* Atmospheric Canvases */
   --bg-obsidian: #0D0907;
   --bg-obsidian-elevated: #16100C;
@@ -29,15 +32,15 @@
 }
 
 @theme inline {
-  --font-serif: var(--font-serif), Georgia, serif;
-  --font-sans: var(--font-sans), -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-serif: var(--font-serif-stack);
+  --font-sans: var(--font-sans-stack);
 }
 
 html,
 body {
   background-color: var(--bg-obsidian);
   color: var(--text-ivory);
-  font-family: var(--font-sans), -apple-system, BlinkMacSystemFont, sans-serif;
+  font-family: var(--font-sans-stack);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   overflow-x: hidden;

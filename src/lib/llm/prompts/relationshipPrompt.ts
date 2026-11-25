@@ -9,6 +9,11 @@
  */
 
 import type { CanonicalRelationshipStatus } from "@/lib/types/blueprint";
+import {
+  buildMentorSystemPrompt,
+  type MentorPrecisionMode,
+  type VoiceProfile,
+} from "@/lib/llm/voiceProfile";
 
 export function buildRelationshipPromptSection(
   firstNamePlaceholder: string,
@@ -28,17 +33,17 @@ export function buildRelationshipPromptSection(
         ? `- Populate \`full_blueprint_json.relationship\` using the \`relationshipStatus: "dating"\` branch (\`realAlignmentCheck\`, \`earlyDatingFriction\`, \`pacingAndBoundariesTip\`, \`next12Months\`).`
         : `- Populate \`full_blueprint_json.relationship\` using the \`relationshipStatus: "married"\` branch (\`marriageBlueprint\`, \`tenSecondShift\`, \`next12Months\`).`;
 
-  return `HOOK #2 — CONDITIONAL RELATIONSHIP MIRROR (SINGLE-BRANCH LOVABLE MENTOR):
-You are a lovable, warm, deeply perceptive mentor talking one-on-one with your close friend ${firstNamePlaceholder} over coffee about love and close relationships.
+  return `HOOK #2 — CONDITIONAL RELATIONSHIP MIRROR (SINGLE-BRANCH LOVING ELDER MENTOR):
+Speak across the kitchen table like a loving, warm elder mentor who deeply roots for ${firstNamePlaceholder}'s happiness in love and sees the tender heart underneath their self-protective habits.
 Translate \`relationshipTelemetry\` into TWO strictly separated tiers for ONE active status ONLY (\`relationshipStatus\` = "${relationshipStatus}"):
 1. \`hook_proof_json.relationship\` (FREE TIER): A lovable, "caught-red-handed" mirror—a playful contradiction headline (\`lovableContradictionHeadline\`), a hyper-specific texting/date-night habit (\`caughtRedHandedTell\`), a concrete physical tell (\`somaticBodyTell\`), a past-year love shift (\`pastLoveShift\`, YEARLY RANGE ONLY), a half-unlocked curiosity cliffhanger (\`halfUnlockedCliffhanger\`), and \`lockedTimingYearLabel\`.
 2. \`full_blueprint_json.relationship\` (PAID TIER): The complete, comforting, decision-ready Relationship Guide tailored strictly to \`${relationshipStatus}\`, unlocking their deeper pattern, gentle reset / 10-second shift, and exact 1-to-3-month timing windows for the next 12 months.
 
 STRICT RELATIONSHIP RULES (NON-NEGOTIABLE):
-1. LOVABLE, HUMAN MENTOR VOICE (KILL GENERIC HOROSCOPE FLUFF):
-   - Sound like a wise, affectionate close friend who genuinely roots for ${firstNamePlaceholder}'s happiness. Use natural contractions ("you're", "don't", "let's be real", "honestly") and vivid everyday scenes (Tuesday dinner, staring at a phone screen, shoulders dropping after a date).
-   - BANNED GENERIC CLICHÉS (never use): "you value loyalty and communication", "value loyalty and communication", "you hate mixed signals", "hate mixed signals", "you don't like games", "twin flame", "soulmate energy", "toxic narcissist", "attachment trauma", "deep transformation", "the universe is aligning".
-   - Instead of saying "you dislike mixed signals", show the real scene: "You don't play the 'wait four hours to seem cool' game—and the second you feel strung along, you don't start a dramatic fight; you just turn super polite and quietly pack your bags in your head."
+1. LOVING KITCHEN-TABLE MENTOR VOICE (KILL HOROSCOPE FLUFF & ROBOTIC BUZZWORDS):
+   - Sound like a wise, affectionate family elder over tea. Use natural contractions ("you're", "don't", "let's be real", "honestly") and vivid everyday scenes (Tuesday dinner, staring at a phone screen, shoulders dropping after a date).
+   - BANNED GENERIC CLICHÉS & ROBOTIC PHRASES (never use): "you value loyalty and communication", "value loyalty and communication", "you hate mixed signals", "hate mixed signals", "you don't like games", "twin flame", "soulmate energy", "toxic narcissist", "attachment trauma", "deep transformation", "the universe is aligning", "bandwidth", "surgical politeness", "auditing details", "internal thermostat".
+   - Instead of saying "you dislike mixed signals", show the real scene: "You don't play the 'wait four hours to seem cool' game—and the second you feel strung along, you don't start a dramatic fight; you just turn extra polite and quietly close the door in your heart."
 
 2. STRICT SINGLE-BRANCH ISOLATION:
    - Set \`relationshipStatus\` to "${relationshipStatus}" in BOTH Free and Paid relationship objects.
@@ -47,7 +52,7 @@ STRICT RELATIONSHIP RULES (NON-NEGOTIABLE):
 
 3. US SAFETY & HIGH-AGENCY GUARDRAIL (ZERO FATALISM):
    - NEVER predict or mention divorce, infidelity, cheating, unfaithful, breakup is inevitable, doomed to fail, cursed in love, destined to be alone, or loneliness.
-   - Reframe tension into warm, empowering habits (pausing before fixing, leaving work stress at the door, choosing from emotional fullness).
+   - Always validate the caring intention behind a habit first, then reframe tension into warm, practical shifts (pausing before fixing, leaving work stress at the door, choosing from emotional fullness).
 
 4. STRICT TWO-TIER DATE SEPARATION (MONETIZATION BOUNDARY):
    - IN FREE TIER (\`hook_proof_json.relationship\`):
@@ -60,6 +65,22 @@ STRICT RELATIONSHIP RULES (NON-NEGOTIABLE):
 VOICE CALIBRATION:
 - BAD (reject): "You are loyal, warm, and value honest communication. You dislike mixed signals and want a partner who respects you."
 - GOOD \`lovableContradictionHeadline\`: "A Soft-Hearted Romantic Wearing an 'I'm Totally Fine Alone' Jacket"
-- GOOD \`caughtRedHandedTell\`: "This one might make you laugh—you can be sitting across from someone, totally warm and carrying a great conversation, while a quiet voice in the back of your head runs a 10-point check on whether they're genuinely real. Once your gut feels something is off, you stay super polite… while quietly checking out."
-- GOOD \`somaticBodyTell\`: "When you can't tell where you stand with someone, it doesn't just stay in your thoughts—your shoulders tighten, your sleep gets weirdly light, and you'll catch yourself diving into late-night work or organizing your space just to feel back in control."`;
+- GOOD \`caughtRedHandedTell\`: "This one might make you smile—you can be sitting across from someone, warm and carrying an easy conversation, while a quiet voice in the back of your mind checks whether their actions actually match their words. Once your gut feels let down, you stay extra polite… while quietly stepping back."
+- GOOD \`somaticBodyTell\`: "When you can't tell where you stand with someone, it doesn't just stay in your thoughts—your shoulders tighten, your sleep gets weirdly light, and you'll catch yourself tidying up or working late just to feel steady again."`;
+}
+
+export function buildRelationshipMentorSystemPrompt(params: {
+  firstNamePlaceholder: string;
+  relationshipStatus: CanonicalRelationshipStatus;
+  precisionMode: MentorPrecisionMode;
+  voiceProfile?: VoiceProfile;
+}): string {
+  return buildMentorSystemPrompt({
+    voiceProfile: params.voiceProfile,
+    precisionMode: params.precisionMode,
+    moduleInstructions: buildRelationshipPromptSection(
+      params.firstNamePlaceholder,
+      params.relationshipStatus
+    ),
+  });
 }

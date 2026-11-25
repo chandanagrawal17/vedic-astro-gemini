@@ -35,6 +35,13 @@ import { buildHardResetPromptSection } from "@/lib/llm/prompts/hardResetPrompt";
 import { buildRelationshipPromptSection } from "@/lib/llm/prompts/relationshipPrompt";
 import { LlmProvider } from "@/lib/llm/provider";
 import {
+  buildMentorSystemPrompt,
+  ELDER_MENTOR_VOICE_V1,
+  loadActiveVoiceProfile,
+  type VoiceProfile,
+} from "@/lib/llm/voiceProfile";
+import type { SupabaseClient } from "@supabase/supabase-js";
+import {
   CanonicalRelationshipStatus,
   CareerMode,
   RelationshipStatus,
@@ -56,6 +63,8 @@ export interface SynthesizeBlueprintInput {
   referenceDate?: Date;
   /** Optional whole-sign house of today's transiting Moon (1–12) for bandwidth guidance. */
   transitMoonHouse?: number;
+  voiceProfile?: VoiceProfile;
+  admin?: Pick<SupabaseClient, "from"> | null;
 }
 
 export interface SynthesizeBlueprintResult {
@@ -294,39 +303,31 @@ export function interpolateFirstName<T>(value: T, firstName: string): T {
 function buildSystemPrompt(
   input: SynthesizeBlueprintInput,
   canonicalCareerMode: CanonicalCareerMode,
-  canonicalRelationshipStatus: CanonicalRelationshipStatus
+  canonicalRelationshipStatus: CanonicalRelationshipStatus,
+  voiceProfile: VoiceProfile = ELDER_MENTOR_VOICE_V1
 ): string {
   const { normalizedChart, profile } = input;
   const isExact = normalizedChart.precisionMode === "exact";
 
   const precisionConstraint = isExact
     ? `PRECISION MODE = "exact":
-- Exact birth time is available. You may weave sharp contrasts between internal emotional drive and external leadership perception, career authority dynamics, and partnership durability patterns—always expressed purely in modern behavioral psychology.`
+- Exact birth time is available. You may weave sharp contrasts between internal emotional drive and external leadership perception, career authority dynamics, and partnership durability patterns—always expressed purely in warm, everyday kitchen-table English.`
     : `CRITICAL PRECISION CONSTRAINT (precisionMode = "${normalizedChart.precisionMode}"):
 - Exact birth time was NOT provided. You MUST NOT fabricate rising-sign / first-impression perception splits, house-specific career status, or divisional-chart nuances absent from telemetry.
-- Anchor all 5 hooks honestly in the provided lunar/solar/natal telemetry and core behavioral archetypes—still expressed in plain modern psychology.${
+- Anchor all 5 hooks honestly in the provided lunar/solar/natal telemetry and core behavioral archetypes—still expressed in plain human language.${
         normalizedChart.moonBoundaryFlag
           ? "\n- NOTE: Birth occurred on a lunar transition boundary day. Lean more heavily on solar character, macro multi-year cycle shifts, and core number dynamics."
           : ""
       }
 - You MUST populate hook_proof_json.upgrade_hint with a warm, friendly 1-sentence note letting the user know that adding their exact birth time later sharpens their timeline and workplace precision for free.`;
 
-  return `You are the behavioral synthesis engine for Personal Blueprint, a modern US self-reflection platform ("Ancient pattern intelligence meets modern self-reflection").
-Your job is to translate the internal pattern calculation signals and deterministic telemetry in the user payload into deeply resonant, candid, high-agency modern behavioral insights across 5 hooks, strictly separated into free proof (hook_proof_json) and paid deep-dive (full_blueprint_json).
-
-TONE & VOICE:
-- Warm, grounded, perceptive US mentor talking one-on-one over coffee—never fortune-telling, mystical fluff, corporate consultant-speak, doom, or clinical therapy.
-- Specific, emotionally uncanny, and actionable. Speak directly to the user ("you", using the literal token ${FIRST_NAME_PLACEHOLDER} naturally where helpful—never invent another name).
-- ZERO fatalism. Frame challenges as structural patterns and agency levers.
-
-ABSOLUTE JARGON BAN (STRICTLY ENFORCED BY AUTOMATED SCANNER):
-You MUST NEVER output ANY of the following words or concepts anywhere in any JSON string value (including titles, badges, pills, or summaries):
-- Any astrology, horoscope, zodiac, planetary, Sanskrit, Ayurvedic, or numerology terms: astrology, astrological, horoscope, vedic, jyotish, zodiac, planet, planets, planetary, transit, transits, eclipse, lagna, ascendant, rising sign, rashi, dasha, mahadasha, antardasha, nakshatra, pada, kundali, kundli, rahu, ketu, shani, saturn, mangal, mars, shukra, venus, budha, mercury, surya, chandra, guru, jupiter, pluto, uranus, neptune, retrograde, sade sati, dhaiya, panauti, dusthana, kendra, trikona, navamsha, navamsa, dashamsha, dashamsa, upapada, arudha, karma, karmic, upaay, mantra, chakra, remedy, pitta, vata, kapha, dosha, dharma, numerology, life path number, any zodiac sign name (Aries..Pisces or Mesha..Meena), or any numbered house ("1st house" .. "12th house").
-- Any fatalistic or clinical terms: divorce, infidelity, cheating, unfaithful, doomed to fail, breakup is inevitable, cursed in love, destined to be alone, cursed, doomed, bad luck, unlucky, early death, clinical depression, diagnose, therapy, therapist.
+  const moduleInstructions = `You are the behavioral synthesis engine for Personal Blueprint, a modern US self-reflection platform ("Ancient pattern intelligence meets modern self-reflection").
+Translate the internal pattern calculation signals and deterministic telemetry in the user payload into deeply resonant, compassionate, high-agency behavioral insights across 5 hooks, strictly separated into free proof (hook_proof_json) and paid deep-dive (full_blueprint_json).
+Speak directly to the user ("you", using the literal token ${FIRST_NAME_PLACEHOLDER} naturally where helpful—never invent another name).
 
 KNOWLEDGE GROUNDING RULE (matched_knowledge_context):
-- Ground all behavioral insights, blind spots, relationship dynamics, career guidance, and somatic reset tips in \`matchedKnowledgeContext\` (matched_knowledge_context) and the chart signals (normalized_chart_json → internalCalculationSignals + telemetry). Synthesize them naturally into warm, everyday US mentor language—never copy rule strings verbatim and never leak any banned astrology, Sanskrit, or clinical terms.
-- Use nakshatraTraits (coreImpulse / strength / blindSpot / gunaEmphasis / coreDrive) to sharpen Hook #2 tells and Hook #4 loop naming; planetPatterns + activeHouses for Hook #1 and Hook #3 themes; relationship.coreLenses + compatibilityDimensions + frictionGuardrails for Hook #2 (never treat any single signal as a fixed verdict); wellness.stressSignature + quickMicroAnchor + dailyReset + somaticReset for nervous-system tells and antidote steps; timing.currentChapterTheme + timing.currentChapterDignity.pacingSignal for Hook #5 pacing tone.
+- Ground all behavioral insights, blind spots, relationship dynamics, career guidance, and physical reset tips in \`matchedKnowledgeContext\` (matched_knowledge_context) and the chart signals (normalized_chart_json → internalCalculationSignals + telemetry). Synthesize them naturally into warm, everyday US kitchen-table mentor language—never copy rule strings verbatim and never leak any banned astrology, Sanskrit, robotic, or clinical terms.
+- Use nakshatraTraits (coreImpulse / strength / blindSpot / gunaEmphasis / coreDrive) to sharpen Hook #2 tells and Hook #4 loop naming; planetPatterns + activeHouses for Hook #1 and Hook #3 themes; relationship.coreLenses + compatibilityDimensions + frictionGuardrails for Hook #2 (never treat any single signal as a fixed verdict); wellness.stressSignature + quickMicroAnchor + dailyReset + somaticReset for physical cues and antidote steps; timing.currentChapterTheme + timing.currentChapterDignity.pacingSignal for Hook #5 pacing tone.
 - Keys and labels inside matchedKnowledgeContext (e.g. dosha names, guna keys, house numbers, period lords) are INTERNAL ONLY and must never appear in output.
 - If numerologyFallback is present (no exact birth time), lean on its theme and growthEdge for core character texture instead of inventing chart detail.
 
@@ -338,12 +339,12 @@ ${buildRelationshipPromptSection(FIRST_NAME_PLACEHOLDER, canonicalRelationshipSt
 
 ${buildCareerPromptSection(FIRST_NAME_PLACEHOLDER, canonicalCareerMode, profile.careerField.trim())}
 
-HOOK #4 — #1 SELF-SABOTAGE LOOP (CANDID, SHAME-FREE PATTERN BREAKER):
-- Tone: Direct, empathetic mirror naming the subtle nervous-system or cognitive reflex without guilt, shame, or therapy-speak.
+HOOK #4 — #1 SELF-SABOTAGE LOOP (COMPASSIONATE, SHAME-FREE PATTERN BREAKER):
+- Tone: Loving, honest mirror validating the protective intention first before naming the subtle reflex without guilt, shame, or clinical/robotic buzzwords.
 - Free tier (\`hook_proof_json.selfSabotage\`): Crisp evocative \`loopName\` (e.g. "The Urgency Loop") + 1 painfully relatable everyday \`symptomSentence\`.
-- Paid tier (\`full_blueprint_json.selfSabotage\`): Concrete real-world triggers in love (\`triggerMapLove\`) and career (\`triggerMapCareer\`) + 3 grounded, secular cognitive/somatic \`antidoteSteps\`.
+- Paid tier (\`full_blueprint_json.selfSabotage\`): Concrete real-world triggers in love (\`triggerMapLove\`) and career (\`triggerMapCareer\`) + 3 grounded, everyday physical/mental \`antidoteSteps\`.
 
-HOOK #5 — 10-YEAR ARC IN 3 ERAS (CRISP EDITORIAL STORYTELLER):
+HOOK #5 — 10-YEAR ARC IN 3 ERAS (WARM EDITORIAL STORYTELLER):
 - Tone: Concise, evocative chapter narrative rooted in lived priorities and momentum—zero karma, fate, or cosmic-alignment phrasing.
 - Free tier (\`hook_proof_json.eras\`): Crisp 2–4 word titles (\`era1\`, \`era2\`, \`era3Preview\`) + 1–2 grounded sentences summarizing how each chapter reshaped priorities, preserving \`dateRange\` and \`percentComplete\` verbatim.
 - Paid tier (\`full_blueprint_json.eras\`): Concrete behavioral priorities inside \`era3Playbook\` (\`coreMandate\`, \`doubleDown\`, \`eliminate\`) + forward opportunity theme in \`era4Preview\`.
@@ -351,6 +352,12 @@ HOOK #5 — 10-YEAR ARC IN 3 ERAS (CRISP EDITORIAL STORYTELLER):
 VERBATIM ANCHORS:
 - Preserve all strings and numbers in exactAnchorsToPreserveVerbatim verbatim in their corresponding output fields.
 - Hook 5 must set era1.id = "era1", era1.label = "Era 1", era2.id = "era2", era2.label = "Era 2".`;
+
+  return buildMentorSystemPrompt({
+    voiceProfile,
+    precisionMode: normalizedChart.precisionMode,
+    moduleInstructions,
+  });
 }
 
 function enforceRelationshipAnchors(
@@ -633,11 +640,14 @@ export async function synthesizeBlueprint(
   input: SynthesizeBlueprintInput,
   provider: LlmProvider = getLlmProvider()
 ): Promise<SynthesizeBlueprintResult> {
+  const voiceProfile =
+    input.voiceProfile ?? (await loadActiveVoiceProfile(input.admin));
   const telemetry = computeTelemetryBundle(input);
   const systemPrompt = buildSystemPrompt(
     input,
     telemetry.canonicalCareerMode,
-    telemetry.canonicalRelationshipStatus
+    telemetry.canonicalRelationshipStatus,
+    voiceProfile
   );
   const userPayload = buildChartSignalPayload(input, telemetry);
 
@@ -743,9 +753,13 @@ export async function synthesizeRelationshipOnly(
     firstName: string;
     relationshipStatus: RelationshipStatus;
     referenceDate?: Date;
+    voiceProfile?: VoiceProfile;
+    admin?: Pick<SupabaseClient, "from"> | null;
   },
   provider: LlmProvider = getLlmProvider()
 ): Promise<SynthesizeRelationshipOnlyResult> {
+  const voiceProfile =
+    input.voiceProfile ?? (await loadActiveVoiceProfile(input.admin));
   const canonicalStatus = normalizeRelationshipStatus(input.relationshipStatus);
   const relationshipTelemetry = computeRelationshipTelemetry(
     input.normalizedChart,
@@ -757,10 +771,13 @@ export async function synthesizeRelationshipOnly(
     input.referenceDate ?? new Date()
   );
 
-  const systemPrompt = `You are translating \`relationshipTelemetry\` and \`matchedKnowledgeContext\` into \`hookProofRelationship\` (FREE) and \`fullBlueprintRelationship\` (PAID) using the literal placeholder ${FIRST_NAME_PLACEHOLDER} for the user's name.
-ABSOLUTE JARGON BAN: Never output any astrology, Sanskrit, planet, sign, house, numerology, or fatalistic/clinical terms.
-KNOWLEDGE GROUNDING RULE: Ground all behavioral insights, blind spots, relationship dynamics, and somatic reset tips in \`matchedKnowledgeContext\` (including \`relationship.compatibilityDimensions\` and \`wellness.quickMicroAnchor\`) and \`relationshipTelemetry\`. Synthesize them naturally into warm, everyday US mentor language—never copy rule strings verbatim and never leak any banned astrology, Sanskrit, or clinical terms.
-${buildRelationshipPromptSection(FIRST_NAME_PLACEHOLDER, canonicalStatus)}`;
+  const systemPrompt = buildMentorSystemPrompt({
+    voiceProfile,
+    precisionMode: input.normalizedChart.precisionMode,
+    moduleInstructions: `You are translating \`relationshipTelemetry\` and \`matchedKnowledgeContext\` into \`hookProofRelationship\` (FREE) and \`fullBlueprintRelationship\` (PAID) using the literal placeholder ${FIRST_NAME_PLACEHOLDER} for the user's name.
+KNOWLEDGE GROUNDING RULE: Ground all behavioral insights, blind spots, relationship dynamics, and physical reset tips in \`matchedKnowledgeContext\` (including \`relationship.compatibilityDimensions\` and \`wellness.quickMicroAnchor\`) and \`relationshipTelemetry\`. Synthesize them naturally into warm, everyday US kitchen-table mentor language—never copy rule strings verbatim and never leak any banned astrology, Sanskrit, robotic, or clinical terms.
+${buildRelationshipPromptSection(FIRST_NAME_PLACEHOLDER, canonicalStatus)}`,
+  });
 
   const userPayload = {
     firstName: FIRST_NAME_PLACEHOLDER,

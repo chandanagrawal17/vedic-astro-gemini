@@ -30,6 +30,42 @@ export const DATING_BRANCH_FORBIDDEN_REGEX =
 export const CORPORATE_BUZZWORD_REGEX =
   /\b(synerg\w*|operational footprint|surgical diagnostic|deliverables|value proposition|paradigm|tactical posture|stakeholder alignment|scalable ecosystem|maximize upside)\b/gi;
 
+export const BANNED_ROBOTIC_BUZZWORDS = [
+  "high-voltage",
+  "bandwidth",
+  "surgical politeness",
+  "diagnostic sprints",
+  "auditing details",
+  "internal thermostat",
+  "nervous system baseline",
+  "moving the goalpost",
+  "moving the goalposts",
+  "telemetry",
+  "operationalize",
+  "operational mode",
+  "cognitive battery",
+  "circuit breaker",
+  "optimization",
+  "over-optimizing",
+  "optimize",
+  "synergy",
+  "pipeline",
+  "framework",
+  "leverage point",
+  "tactical stance",
+  "executive state",
+  "burnout threshold",
+  "somatic interrupt",
+  "neural stillness",
+] as const;
+
+export const BANNED_ROBOTIC_BUZZWORDS_REGEX = new RegExp(
+  `\\b(${BANNED_ROBOTIC_BUZZWORDS.map((term) =>
+    term.replace(/[.*+?^${}()|[\]\\]/g, "\\$&").replace(/\s+/g, "\\s+")
+  ).join("|")})\\b`,
+  "gi"
+);
+
 /**
  * Detects leaked month names or seasons inside Free Tier Hard Reset & Career copy,
  * while avoiding false positives on everyday English verbs/nouns like "you may feel",
@@ -53,6 +89,7 @@ export type GuardrailCategory =
   | "horoscope_cliche"
   | "love_cliche"
   | "corporate_buzzword"
+  | "robotic_buzzword"
   | "free_tier_month_leak"
   | "free_tier_score_leak"
   | "paid_date_fidelity"
@@ -488,4 +525,67 @@ export function auditRelationshipOnlyOutput(
     },
     { relationshipTelemetry }
   );
+}
+
+/**
+ * Audits a string or nested JSON payload against the Global Elder-Mentor Tone
+ * blocklist (`BANNED_ROBOTIC_BUZZWORDS`), corporate buzzwords, astrology/Sanskrit
+ * jargon, clichés, and fatalistic/clinical language.
+ */
+export function auditMentorTone(input: string | unknown): GuardrailAuditResult {
+  const violations: GuardrailViolation[] = [];
+
+  walkStrings(input, typeof input === "string" ? "text" : "", (text, path) => {
+    runRegexOnText(
+      text,
+      path || "text",
+      BANNED_ROBOTIC_BUZZWORDS_REGEX,
+      "robotic_buzzword",
+      violations
+    );
+    runRegexOnText(
+      text,
+      path || "text",
+      CORPORATE_BUZZWORD_REGEX,
+      "corporate_buzzword",
+      violations
+    );
+    runRegexOnText(
+      text,
+      path || "text",
+      BANNED_ASTROLOGY_REGEX,
+      "astrology_jargon",
+      violations
+    );
+    runRegexOnText(
+      text,
+      path || "text",
+      BANNED_FATALISTIC_REGEX,
+      "fatalistic_clinical",
+      violations
+    );
+    runRegexOnText(
+      text,
+      path || "text",
+      CLICHE_REGEX,
+      "horoscope_cliche",
+      violations
+    );
+  });
+
+  const seen = new Set<string>();
+  const flaggedTerms: string[] = [];
+  for (const v of violations) {
+    const normalized = v.term.toLowerCase();
+    if (!seen.has(normalized)) {
+      seen.add(normalized);
+      flaggedTerms.push(v.term);
+    }
+  }
+
+  return {
+    passed: violations.length === 0,
+    violations,
+    flaggedTerms,
+  };
 }
